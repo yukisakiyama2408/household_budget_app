@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import type { FixedExpense, FixedExpenseLog } from "@/types/database";
+import type { FixedExpense } from "@/types/database";
 
 export async function applyFixedExpenses(
   year: number,
@@ -38,7 +38,8 @@ export async function applyFixedExpenses(
     const day = Math.min(fe.day_of_month, lastDay);
     const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-    const { data: txData, error: txError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: txData, error: txError } = await (supabase
       .from("transactions")
       .insert({
         date,
@@ -48,10 +49,9 @@ export async function applyFixedExpenses(
         amount: fe.amount,
         pay_method: fe.pay_method,
         store: fe.store,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
       .select("id")
-      .single();
+      .single() as any) as { data: { id: number } | null; error: unknown };
     if (txError) throw txError;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,7 +59,7 @@ export async function applyFixedExpenses(
       fixed_expense_id: fe.id,
       year,
       month,
-      transaction_id: txData.id,
+      transaction_id: txData?.id,
     });
     if (logInsertError) throw logInsertError;
 
