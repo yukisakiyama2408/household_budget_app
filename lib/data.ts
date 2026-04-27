@@ -1,5 +1,11 @@
 import { createClient } from "@/utils/supabase/server";
-import type { Category, CreditSettlement, Transaction } from "@/types/database";
+import type { Budget, Category, CreditSettlement, Transaction } from "@/types/database";
+
+export type BudgetItem = {
+  category: Category;
+  budgetAmount: number;
+  actualAmount: number;
+};
 
 export type DayEntry = {
   income: number;
@@ -19,15 +25,32 @@ export type MonthDailyData = {
   creditSettlement: number;
 };
 
+const PAGE_SIZE = 1000;
+
+async function fetchAllTransactions(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  baseQuery: any
+): Promise<Transaction[]> {
+  const all: Transaction[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await baseQuery.range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const batch = (data ?? []) as Transaction[];
+    all.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return all;
+}
+
 export async function getDailyData(year: number): Promise<MonthDailyData[]> {
   const supabase = await createClient();
 
   // 選択年より前の収支合計（残高計算: 収入 - Cash支出 のみ）
-  const { data: prevData, error: prevError } = await supabase
-    .from("transactions")
-    .select("*")
-    .lt("date", `${year}-01-01`);
-  if (prevError) throw prevError;
+  const prevRows = await fetchAllTransactions(
+    supabase.from("transactions").select("*").lt("date", `${year}-01-01`)
+  );
 
   // 選択年より前のクレジット引き落とし合計
   const { data: prevSettlements, error: prevSetError } = await supabase
@@ -36,7 +59,6 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
     .lt("year", year);
   if (prevSetError) throw prevSetError;
 
-  const prevRows = (prevData ?? []) as Transaction[];
   const prevSettlementTotal = ((prevSettlements ?? []) as CreditSettlement[]).reduce(
     (sum, s) => sum + s.amount, 0
   );
@@ -46,14 +68,15 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
     return sum;
   }, 0) - prevSettlementTotal;
 
-  // 選択年のすべての収支を日付順に取得
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .gte("date", `${year}-01-01`)
-    .lt("date", `${year + 1}-01-01`)
-    .order("date", { ascending: true });
-  if (error) throw error;
+  // 選択年のすべての収支を日付順に取得（ページネーションで全件）
+  const rows = await fetchAllTransactions(
+    supabase
+      .from("transactions")
+      .select("*")
+      .gte("date", `${year}-01-01`)
+      .lt("date", `${year + 1}-01-01`)
+      .order("date", { ascending: true })
+  );
 
   // 選択年のクレジット引き落とし取得
   const { data: settlementData, error: setError } = await supabase
@@ -65,8 +88,6 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
   const settlementMap = new Map<number, number>(
     ((settlementData ?? []) as CreditSettlement[]).map((s) => [s.month, s.amount])
   );
-
-  const rows = (data ?? []) as Transaction[];
 
   // 日付ごとに集計
   const dayMap = new Map<string, DayEntry>();
@@ -138,10 +159,12 @@ export async function getTransactions({
   month,
   type,
   categoryId,
+  limit,
 }: {
   month?: string;
   type?: string;
   categoryId?: string;
+  limit?: number;
 } = {}) {
   const supabase = await createClient();
   let query = supabase
@@ -165,10 +188,35 @@ export async function getTransactions({
   if (categoryId) {
     query = query.eq("category_id", parseInt(categoryId));
   }
+  if (limit) {
+    query = query.limit(limit);
+  }
 
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as TransactionWithCategory[];
+}
+
+export async function getCurrentBalance(): Promise<number> {
+  const supabase = await createClient();
+
+  const [allRows, { data: settlements, error: setError }] = await Promise.all([
+    fetchAllTransactions(supabase.from("transactions").select("*")),
+    supabase.from("credit_settlements").select("*"),
+  ]);
+  if (setError) throw setError;
+
+  const txBalance = allRows.reduce((sum, t) => {
+    if (t.type === "income") return sum + t.amount;
+    if (t.pay_method === "Cash") return sum - t.amount;
+    return sum;
+  }, 0);
+
+  const settlementTotal = ((settlements ?? []) as CreditSettlement[]).reduce(
+    (sum, s) => sum + s.amount, 0
+  );
+
+  return txBalance - settlementTotal;
 }
 
 export async function getTransactionById(id: number) {
@@ -249,16 +297,14 @@ export async function getCategoryBreakdown(year: number, month: number) {
 export async function getYearlyTrend(year: number) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .gte("date", `${year}-01-01`)
-    .lt("date", `${year + 1}-01-01`)
-    .order("date", { ascending: true });
-
-  if (error) throw error;
-
-  const rows = (data ?? []) as Transaction[];
+  const rows = await fetchAllTransactions(
+    supabase
+      .from("transactions")
+      .select("*")
+      .gte("date", `${year}-01-01`)
+      .lt("date", `${year + 1}-01-01`)
+      .order("date", { ascending: true })
+  );
   const map = new Map<string, { income: number; expense: number }>();
 
   // 1〜12月分を初期化（データなしの月も表示するため）
@@ -283,15 +329,13 @@ export async function getYearlyTrend(year: number) {
 export async function getYearlySummary(year: number) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .gte("date", `${year}-01-01`)
-    .lt("date", `${year + 1}-01-01`);
-
-  if (error) throw error;
-
-  const rows = (data ?? []) as Transaction[];
+  const rows = await fetchAllTransactions(
+    supabase
+      .from("transactions")
+      .select("*")
+      .gte("date", `${year}-01-01`)
+      .lt("date", `${year + 1}-01-01`)
+  );
   const income = rows
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -300,4 +344,67 @@ export async function getYearlySummary(year: number) {
     .reduce((sum, t) => sum + t.amount, 0);
 
   return { income, expense, balance: income - expense };
+}
+
+export type YearlyBudgetData = {
+  budgetAmount: number;
+  actualAmount: number;
+};
+
+export async function getYearlyBudget(year: number): Promise<YearlyBudgetData> {
+  const supabase = await createClient();
+
+  const [{ data: budgetData, error: budgetError }, summary] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from("yearly_budgets") as any).select("*").eq("year", year).maybeSingle(),
+    getYearlySummary(year),
+  ]);
+
+  if (budgetError) throw budgetError;
+
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    budgetAmount: (budgetData as any)?.amount ?? 0,
+    actualAmount: summary.expense,
+  };
+}
+
+export async function getBudgetData(year: number, month: number): Promise<BudgetItem[]> {
+  const supabase = await createClient();
+  const { start, end } = getMonthRange(year, month);
+
+  const [
+    { data: categoryData, error: catError },
+    { data: budgetData, error: budgetError },
+    { data: txData, error: txError },
+  ] = await Promise.all([
+    supabase.from("categories").select("*").order("display_order", { ascending: true }),
+    supabase.from("budgets").select("*").eq("year", year).eq("month", month),
+    supabase.from("transactions").select("*").eq("type", "expense").gte("date", start).lt("date", end),
+  ]);
+
+  if (catError) throw catError;
+  if (budgetError) throw budgetError;
+  if (txError) throw txError;
+
+  const categories = (categoryData ?? []) as Category[];
+  const budgets = (budgetData ?? []) as Budget[];
+  const transactions = (txData ?? []) as Transaction[];
+
+  const budgetMap = new Map(budgets.map((b) => [b.category_id, b.amount]));
+
+  const actualMap = new Map<number, number>();
+  for (const t of transactions) {
+    if (t.category_id != null) {
+      actualMap.set(t.category_id, (actualMap.get(t.category_id) ?? 0) + t.amount);
+    }
+  }
+
+  return categories
+    .filter((c) => c.type === "expense" || c.type === "both")
+    .map((c) => ({
+      category: c,
+      budgetAmount: budgetMap.get(c.id) ?? 0,
+      actualAmount: actualMap.get(c.id) ?? 0,
+    }));
 }

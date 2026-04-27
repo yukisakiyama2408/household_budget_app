@@ -79,6 +79,30 @@ export async function deleteTransaction(id: number) {
   redirect("/transactions");
 }
 
+export async function upsertYearlyBudget(year: number, amount: number) {
+  const supabase = await createClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("yearly_budgets") as any)
+    .upsert({ year, amount }, { onConflict: "year" });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/budget");
+}
+
+export async function upsertBudget(year: number, month: number, categoryId: number, amount: number) {
+  const supabase = await createClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("budgets") as any)
+    .upsert({ year, month, category_id: categoryId, amount }, { onConflict: "year,month,category_id" });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/budget");
+}
+
 export async function upsertCreditSettlement(year: number, month: number, amount: number) {
   const supabase = await createClient();
 

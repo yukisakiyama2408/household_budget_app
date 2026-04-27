@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/", label: "月次" },
+  { href: "/", label: "ホーム" },
+  { href: "/monthly", label: "月次" },
   { href: "/yearly", label: "年次" },
   { href: "/daily", label: "日次" },
   { href: "/transactions", label: "収支" },
+  { href: "/budget", label: "予算" },
 ];
 
 export default function Nav() {
