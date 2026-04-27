@@ -10,6 +10,7 @@ const links = [
   { href: "/daily", label: "日次" },
   { href: "/transactions", label: "収支" },
   { href: "/budget", label: "予算" },
+  { href: "/fixed", label: "固定費" },
 ];
 
 export default function Nav() {

@@ -1,5 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
-import type { Budget, Category, CreditSettlement, Transaction } from "@/types/database";
+import type { Budget, Category, CreditSettlement, FixedExpense, FixedExpenseLog, Transaction } from "@/types/database";
+
+export type FixedExpenseWithCategory = FixedExpense & {
+  categories: { name: string; color: string | null } | null;
+};
 
 export type BudgetItem = {
   category: Category;
@@ -367,6 +371,38 @@ export async function getYearlyBudget(year: number): Promise<YearlyBudgetData> {
     budgetAmount: (budgetData as any)?.amount ?? 0,
     actualAmount: summary.expense,
   };
+}
+
+export async function getFixedExpenses(): Promise<FixedExpenseWithCategory[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("fixed_expenses")
+    .select("*, categories(name, color)")
+    .order("day_of_month", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as FixedExpenseWithCategory[];
+}
+
+export async function getFixedExpenseLogs(): Promise<FixedExpenseLog[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("fixed_expense_logs")
+    .select("*")
+    .order("year", { ascending: false })
+    .order("month", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as FixedExpenseLog[];
+}
+
+export async function getFixedExpenseById(id: number): Promise<FixedExpense> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("fixed_expenses")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data as FixedExpense;
 }
 
 export async function getBudgetData(year: number, month: number): Promise<BudgetItem[]> {

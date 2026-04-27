@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { applyFixedExpenses } from "@/lib/fixed-expenses";
 
 export async function createTransaction(formData: FormData) {
   const supabase = await createClient();
@@ -113,4 +114,90 @@ export async function upsertCreditSettlement(year: number, month: number, amount
   if (error) throw new Error(error.message);
 
   revalidatePath("/daily");
+}
+
+export async function createFixedExpense(formData: FormData) {
+  const supabase = await createClient();
+
+  const name = formData.get("name") as string;
+  const type = formData.get("type") as string;
+  const amount = formData.get("amount") as string;
+  const categoryId = formData.get("category_id") as string;
+  const payMethod = formData.get("pay_method") as string;
+  const store = formData.get("store") as string;
+  const dayOfMonth = formData.get("day_of_month") as string;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("fixed_expenses") as any).insert({
+    name,
+    type,
+    amount: parseInt(amount),
+    category_id: categoryId ? parseInt(categoryId) : null,
+    pay_method: payMethod || null,
+    store: store || null,
+    day_of_month: parseInt(dayOfMonth),
+    is_active: true,
+  });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/fixed");
+  redirect("/fixed");
+}
+
+export async function updateFixedExpense(id: number, formData: FormData) {
+  const supabase = await createClient();
+
+  const name = formData.get("name") as string;
+  const type = formData.get("type") as string;
+  const amount = formData.get("amount") as string;
+  const categoryId = formData.get("category_id") as string;
+  const payMethod = formData.get("pay_method") as string;
+  const store = formData.get("store") as string;
+  const dayOfMonth = formData.get("day_of_month") as string;
+  const isActive = formData.get("is_active") as string;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("fixed_expenses") as any)
+    .update({
+      name,
+      type,
+      amount: parseInt(amount),
+      category_id: categoryId ? parseInt(categoryId) : null,
+      pay_method: payMethod || null,
+      store: store || null,
+      day_of_month: parseInt(dayOfMonth),
+      is_active: isActive === "true",
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/fixed");
+  redirect("/fixed");
+}
+
+export async function deleteFixedExpense(id: number) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("fixed_expenses")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/fixed");
+  redirect("/fixed");
+}
+
+export async function applyFixedExpensesAction(
+  year: number,
+  month: number
+): Promise<{ applied: number; skipped: number }> {
+  const result = await applyFixedExpenses(year, month);
+  revalidatePath("/");
+  revalidatePath("/transactions");
+  revalidatePath("/fixed");
+  return result;
 }

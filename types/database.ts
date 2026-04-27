@@ -45,6 +45,28 @@ export type BudgetWithCategory = Budget & {
   categories: Category;
 };
 
+export type FixedExpense = {
+  id: number;
+  name: string;
+  amount: number;
+  type: string;
+  category_id: number | null;
+  pay_method: string | null;
+  store: string | null;
+  day_of_month: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type FixedExpenseLog = {
+  id: number;
+  fixed_expense_id: number;
+  year: number;
+  month: number;
+  transaction_id: number | null;
+  applied_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
