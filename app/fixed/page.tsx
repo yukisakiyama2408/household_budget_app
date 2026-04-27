@@ -80,12 +80,12 @@ export default async function FixedExpensesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b">
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">名前</th>
+              <th className="text-left px-2 sm:px-4 py-3 font-medium text-muted-foreground">名前</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">カテゴリ</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">金額</th>
-              <th className="text-center px-4 py-3 font-medium text-muted-foreground">毎月</th>
+              <th className="text-right px-2 sm:px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">金額</th>
+              <th className="text-center px-2 sm:px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">毎月</th>
               <th className="text-center px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">支払</th>
-              <th className="px-4 py-3" />
+              <th className="px-2 sm:px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -98,14 +98,14 @@ export default async function FixedExpensesPage() {
             ) : (
               active.map((fe) => (
                 <tr key={fe.id} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                  <td className="px-2 sm:px-4 py-3">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 hidden sm:inline ${
                         fe.type === "expense" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
                       }`}>
                         {fe.type === "expense" ? "支出" : "収入"}
                       </span>
-                      <span>{fe.name}</span>
+                      <span className="truncate">{fe.name}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
@@ -121,17 +121,17 @@ export default async function FixedExpensesPage() {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </td>
-                  <td className={`px-4 py-3 text-right tabular-nums font-medium ${
+                  <td className={`px-2 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap ${
                     fe.type === "expense" ? "text-red-600" : "text-green-600"
                   }`}>
                     {fe.type === "expense" ? "-" : "+"}{fmt(fe.amount)}
                   </td>
-                  <td className="px-4 py-3 text-center text-gray-500">{fe.day_of_month}日</td>
+                  <td className="px-2 sm:px-4 py-3 text-center text-gray-500 whitespace-nowrap">{fe.day_of_month}日</td>
                   <td className="px-4 py-3 text-center text-muted-foreground hidden sm:table-cell">
                     {fe.pay_method ?? "-"}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link href={`/fixed/${fe.id}/edit`} className="text-xs text-blue-600 hover:underline">
+                  <td className="px-2 sm:px-4 py-3 text-right">
+                    <Link href={`/fixed/${fe.id}/edit`} className="text-xs text-blue-600 hover:underline whitespace-nowrap">
                       編集
                     </Link>
                   </td>
@@ -155,8 +155,8 @@ export default async function FixedExpensesPage() {
                   <td className="px-4 py-3 text-gray-400">{fe.name}</td>
                   <td className="px-4 py-3 text-right text-gray-400 tabular-nums">{fmt(fe.amount)}</td>
                   <td className="px-4 py-3 text-center text-gray-400">{fe.day_of_month}日</td>
-                  <td className="px-4 py-3 text-right">
-                    <Link href={`/fixed/${fe.id}/edit`} className="text-xs text-blue-600 hover:underline">
+                  <td className="px-2 sm:px-4 py-3 text-right">
+                    <Link href={`/fixed/${fe.id}/edit`} className="text-xs text-blue-600 hover:underline whitespace-nowrap">
                       編集
                     </Link>
                   </td>
