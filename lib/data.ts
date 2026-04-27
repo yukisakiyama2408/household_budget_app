@@ -1,5 +1,63 @@
 import { createClient } from "@/utils/supabase/server";
-import type { Transaction } from "@/types/database";
+import type { Category, Transaction } from "@/types/database";
+
+export async function getCategories(): Promise<Category[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("display_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Category[];
+}
+
+export async function getTransactions({
+  month,
+  type,
+  categoryId,
+}: {
+  month?: string;
+  type?: string;
+  categoryId?: string;
+} = {}) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("transactions")
+    .select("*, categories(name, color)")
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (month) {
+    const [y, m] = month.split("-").map(Number);
+    const start = `${y}-${String(m).padStart(2, "0")}-01`;
+    const end =
+      m === 12
+        ? `${y + 1}-01-01`
+        : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+    query = query.gte("date", start).lt("date", end);
+  }
+  if (type && (type === "income" || type === "expense")) {
+    query = query.eq("type", type);
+  }
+  if (categoryId) {
+    query = query.eq("category_id", parseInt(categoryId));
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as TransactionWithCategory[];
+}
+
+export async function getTransactionById(id: number) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data as Transaction;
+}
 
 function getMonthRange(year: number, month: number) {
   const start = `${year}-${String(month).padStart(2, "0")}-01`;
