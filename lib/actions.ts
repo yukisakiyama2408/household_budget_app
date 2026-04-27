@@ -78,3 +78,15 @@ export async function deleteTransaction(id: number) {
   revalidatePath("/transactions");
   redirect("/transactions");
 }
+
+export async function upsertCreditSettlement(year: number, month: number, amount: number) {
+  const supabase = await createClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("credit_settlements") as any)
+    .upsert({ year, month, amount }, { onConflict: "year,month" });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/daily");
+}

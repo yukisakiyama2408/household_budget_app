@@ -1,5 +1,128 @@
 import { createClient } from "@/utils/supabase/server";
-import type { Category, Transaction } from "@/types/database";
+import type { Category, CreditSettlement, Transaction } from "@/types/database";
+
+export type DayEntry = {
+  income: number;
+  cashExpense: number;    // Cash払いのみ（残高計算に使用）
+  creditExpense: number;  // Credit払い（参考表示用）
+};
+
+export type MonthDailyData = {
+  year: number;
+  month: number;
+  daysInMonth: number;
+  totalIncome: number;
+  totalCashExpense: number;
+  totalCreditExpense: number;
+  days: Record<number, DayEntry>;
+  startBalance: number;
+  creditSettlement: number;
+};
+
+export async function getDailyData(year: number): Promise<MonthDailyData[]> {
+  const supabase = await createClient();
+
+  // 選択年より前の収支合計（残高計算: 収入 - Cash支出 のみ）
+  const { data: prevData, error: prevError } = await supabase
+    .from("transactions")
+    .select("*")
+    .lt("date", `${year}-01-01`);
+  if (prevError) throw prevError;
+
+  // 選択年より前のクレジット引き落とし合計
+  const { data: prevSettlements, error: prevSetError } = await supabase
+    .from("credit_settlements")
+    .select("*")
+    .lt("year", year);
+  if (prevSetError) throw prevSetError;
+
+  const prevRows = (prevData ?? []) as Transaction[];
+  const prevSettlementTotal = ((prevSettlements ?? []) as CreditSettlement[]).reduce(
+    (sum, s) => sum + s.amount, 0
+  );
+  let runningBalance = prevRows.reduce((sum, t) => {
+    if (t.type === "income") return sum + t.amount;
+    if (t.pay_method === "Cash") return sum - t.amount;
+    return sum;
+  }, 0) - prevSettlementTotal;
+
+  // 選択年のすべての収支を日付順に取得
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*")
+    .gte("date", `${year}-01-01`)
+    .lt("date", `${year + 1}-01-01`)
+    .order("date", { ascending: true });
+  if (error) throw error;
+
+  // 選択年のクレジット引き落とし取得
+  const { data: settlementData, error: setError } = await supabase
+    .from("credit_settlements")
+    .select("*")
+    .eq("year", year);
+  if (setError) throw setError;
+
+  const settlementMap = new Map<number, number>(
+    ((settlementData ?? []) as CreditSettlement[]).map((s) => [s.month, s.amount])
+  );
+
+  const rows = (data ?? []) as Transaction[];
+
+  // 日付ごとに集計
+  const dayMap = new Map<string, DayEntry>();
+  for (const t of rows) {
+    const entry = dayMap.get(t.date) ?? { income: 0, cashExpense: 0, creditExpense: 0 };
+    if (t.type === "income") {
+      entry.income += t.amount;
+    } else if (t.pay_method === "Cash") {
+      entry.cashExpense += t.amount;
+    } else {
+      entry.creditExpense += t.amount;
+    }
+    dayMap.set(t.date, entry);
+  }
+
+  // 月ごとにまとめる
+  const result: MonthDailyData[] = [];
+  for (let m = 1; m <= 12; m++) {
+    const daysInMonth = new Date(year, m, 0).getDate();
+    const monthStr = `${year}-${String(m).padStart(2, "0")}`;
+    const startBalance = runningBalance;
+    const creditSettlement = settlementMap.get(m) ?? 0;
+
+    let totalIncome = 0;
+    let totalCashExpense = 0;
+    let totalCreditExpense = 0;
+    const days: Record<number, DayEntry> = {};
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${monthStr}-${String(d).padStart(2, "0")}`;
+      const entry = dayMap.get(dateStr) ?? { income: 0, cashExpense: 0, creditExpense: 0 };
+      days[d] = entry;
+      totalIncome += entry.income;
+      totalCashExpense += entry.cashExpense;
+      totalCreditExpense += entry.creditExpense;
+      runningBalance += entry.income - entry.cashExpense;
+      if (d === 27) {
+        runningBalance -= creditSettlement;
+      }
+    }
+
+    result.push({ year, month: m, daysInMonth, totalIncome, totalCashExpense, totalCreditExpense, days, startBalance, creditSettlement });
+  }
+
+  return result;
+}
+
+export async function getCreditSettlements(year: number): Promise<CreditSettlement[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("credit_settlements")
+    .select("*")
+    .eq("year", year);
+  if (error) throw error;
+  return (data ?? []) as CreditSettlement[];
+}
 
 export async function getCategories(): Promise<Category[]> {
   const supabase = await createClient();

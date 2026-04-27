@@ -26,6 +26,13 @@ export type TransactionWithCategory = Transaction & {
   categories: Category | null;
 };
 
+export type CreditSettlement = {
+  id: number;
+  year: number;
+  month: number;
+  amount: number;
+};
+
 export type Budget = {
   id: number;
   year: number;
