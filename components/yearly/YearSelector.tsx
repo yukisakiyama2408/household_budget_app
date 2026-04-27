@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -11,9 +11,13 @@ type Props = {
 export default function YearSelector({ year }: Props) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   function navigate(y: number) {
-    router.push(`${pathname}?year=${y}`);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("year", String(y));
+    params.delete("month");
+    router.push(`${pathname}?${params.toString()}`);
   }
 
   return (

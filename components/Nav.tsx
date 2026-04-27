@@ -5,9 +5,7 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "ホーム" },
-  { href: "/monthly", label: "月次" },
-  { href: "/yearly", label: "年次" },
-  { href: "/daily", label: "日次" },
+  { href: "/monthly", label: "統計" },
   { href: "/transactions", label: "収支" },
   { href: "/budget", label: "予算" },
   { href: "/fixed", label: "固定費" },
