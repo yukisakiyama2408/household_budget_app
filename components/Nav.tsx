@@ -17,7 +17,7 @@ export default function Nav() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b bg-white">
+    <nav className="border-b bg-white sticky top-0 z-50">
       <div className="max-w-5xl mx-auto flex items-center h-12 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <span className="font-bold text-sm pl-4 pr-3 flex-shrink-0 whitespace-nowrap">家計簿</span>
         <div className="flex items-center gap-0.5 pr-3">
