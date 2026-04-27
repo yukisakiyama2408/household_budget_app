@@ -55,10 +55,6 @@ export type FixedExpense = {
   store: string | null;
   day_of_month: number;
   is_active: boolean;
-  start_year: number;
-  start_month: number;
-  end_year: number | null;
-  end_month: number | null;
   created_at: string;
 };
 

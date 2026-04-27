@@ -1,21 +1,29 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getFixedExpenses } from "@/lib/data";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getFixedExpenses, getFixedExpenseLogs } from "@/lib/data";
+import ApplyFixedExpensesButton from "@/components/fixed/ApplyFixedExpensesButton";
 
 function fmt(n: number) {
   return `¥${n.toLocaleString("ja-JP")}`;
 }
 
-function fmtPeriod(fe: { start_year: number; start_month: number; end_year: number | null; end_month: number | null }) {
-  const start = `${fe.start_year}年${fe.start_month}月`;
-  const end = fe.end_year !== null && fe.end_month !== null
-    ? `${fe.end_year}年${fe.end_month}月`
-    : "未定";
-  return `${start}〜${end}`;
-}
 
 export default async function FixedExpensesPage() {
-  const fixedExpenses = await getFixedExpenses();
+  const [fixedExpenses, logs] = await Promise.all([
+    getFixedExpenses(),
+    getFixedExpenseLogs(),
+  ]);
+
+  const appliedMonths = new Map<string, number>();
+  for (const log of logs) {
+    const key = `${log.year}-${String(log.month).padStart(2, "0")}`;
+    appliedMonths.set(key, (appliedMonths.get(key) ?? 0) + 1);
+  }
+  const recentMonths = Array.from(appliedMonths.entries())
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, 6);
+
   const active = fixedExpenses.filter((f) => f.is_active);
   const inactive = fixedExpenses.filter((f) => !f.is_active);
 
@@ -26,6 +34,43 @@ export default async function FixedExpensesPage() {
         <Link href="/fixed/new">
           <Button>+ 新規登録</Button>
         </Link>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-500">固定費の適用</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-gray-400 mb-3">
+              選択した月に登録済みの固定費を収支として一括登録します
+            </p>
+            <ApplyFixedExpensesButton />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-500">適用履歴</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentMonths.length === 0 ? (
+              <p className="text-sm text-gray-400">適用履歴がありません</p>
+            ) : (
+              <div className="space-y-1.5">
+                {recentMonths.map(([key, count]) => {
+                  const [y, m] = key.split("-");
+                  return (
+                    <div key={key} className="flex justify-between text-sm">
+                      <span className="text-gray-600">{y}年{parseInt(m)}月</span>
+                      <span className="text-gray-400">{count}件適用済み</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* 有効な固定費 */}
@@ -61,10 +106,7 @@ export default async function FixedExpensesPage() {
                       }`}>
                         {fe.type === "expense" ? "支出" : "収入"}
                       </span>
-                      <div className="min-w-0">
-                        <span className="truncate block">{fe.name}</span>
-                        <span className="text-xs text-gray-400 whitespace-nowrap">{fmtPeriod(fe)}</span>
-                      </div>
+                      <span className="truncate">{fe.name}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">

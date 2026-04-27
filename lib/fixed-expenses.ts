@@ -28,22 +28,7 @@ export async function applyFixedExpenses(
   let applied = 0;
   let skipped = 0;
 
-  const currentYM = year * 100 + month;
-
   for (const fe of fixedExpenses) {
-    const startYM = fe.start_year * 100 + fe.start_month;
-    if (currentYM < startYM) {
-      skipped++;
-      continue;
-    }
-    if (fe.end_year !== null && fe.end_month !== null) {
-      const endYM = fe.end_year * 100 + fe.end_month;
-      if (currentYM > endYM) {
-        skipped++;
-        continue;
-      }
-    }
-
     if (appliedIds.has(fe.id)) {
       skipped++;
       continue;
