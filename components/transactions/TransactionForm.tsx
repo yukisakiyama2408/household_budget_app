@@ -120,35 +120,38 @@ export default function TransactionForm({
         />
       </div>
 
-      {/* 支払い方法 */}
-      <div className="space-y-1.5">
-        <Label>支払い方法</Label>
-        <Select
-          name="pay_method"
-          defaultValue={defaultValues?.pay_method ?? ""}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="選択（任意）" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">なし</SelectItem>
-            <SelectItem value="Credit">Credit</SelectItem>
-            <SelectItem value="Cash">Cash</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* 支払い方法・店舗（支出のみ） */}
+      {type === "expense" && (
+        <>
+          <div className="space-y-1.5">
+            <Label>支払い方法</Label>
+            <Select
+              name="pay_method"
+              defaultValue={defaultValues?.pay_method ?? ""}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="選択（任意）" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">なし</SelectItem>
+                <SelectItem value="Credit">Credit</SelectItem>
+                <SelectItem value="Cash">Cash</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* 店舗 */}
-      <div className="space-y-1.5">
-        <Label htmlFor="store">店舗（任意）</Label>
-        <Input
-          id="store"
-          name="store"
-          type="text"
-          placeholder="例: セブンイレブン"
-          defaultValue={defaultValues?.store ?? ""}
-        />
-      </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="store">店舗（任意）</Label>
+            <Input
+              id="store"
+              name="store"
+              type="text"
+              placeholder="例: セブンイレブン"
+              defaultValue={defaultValues?.store ?? ""}
+            />
+          </div>
+        </>
+      )}
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" className="flex-1">
