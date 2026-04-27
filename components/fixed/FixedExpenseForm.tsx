@@ -13,6 +13,9 @@ import {
 } from "@/components/ui/select";
 import type { Category, FixedExpense } from "@/types/database";
 
+const YEARS = Array.from({ length: 16 }, (_, i) => 2020 + i);
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
+
 type Props = {
   categories: Category[];
   defaultValues?: Partial<FixedExpense>;
@@ -28,7 +31,11 @@ export default function FixedExpenseForm({
   submitLabel,
   onDelete,
 }: Props) {
+  const now = new Date();
   const [type, setType] = useState<string>(defaultValues?.type ?? "expense");
+  const [hasEndMonth, setHasEndMonth] = useState<boolean>(
+    defaultValues?.end_year != null
+  );
 
   const filteredCategories = categories.filter(
     (c) => c.type === type || c.type === "both"
@@ -91,6 +98,100 @@ export default function FixedExpenseForm({
           <span className="text-sm text-gray-500">日</span>
         </div>
         <p className="text-xs text-gray-400">月末より大きい日付の場合は月末日に適用されます</p>
+      </div>
+
+      {/* 適用開始月 */}
+      <div className="space-y-1.5">
+        <Label>適用開始月</Label>
+        <div className="flex items-center gap-2">
+          <Select
+            name="start_year"
+            defaultValue={String(defaultValues?.start_year ?? now.getFullYear())}
+          >
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {YEARS.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}年</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            name="start_month"
+            defaultValue={String(defaultValues?.start_month ?? now.getMonth() + 1)}
+          >
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MONTHS.map((m) => (
+                <SelectItem key={m} value={String(m)}>{m}月</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* 適用終了月 */}
+      <div className="space-y-1.5">
+        <Label>適用終了月</Label>
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            type="button"
+            onClick={() => setHasEndMonth(false)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+              !hasEndMonth
+                ? "bg-gray-800 text-white border-gray-800"
+                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            未定
+          </button>
+          <button
+            type="button"
+            onClick={() => setHasEndMonth(true)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+              hasEndMonth
+                ? "bg-gray-800 text-white border-gray-800"
+                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            月を指定
+          </button>
+        </div>
+        {hasEndMonth ? (
+          <div className="flex items-center gap-2">
+            <Select
+              name="end_year"
+              defaultValue={String(defaultValues?.end_year ?? now.getFullYear())}
+            >
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {YEARS.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}年</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              name="end_month"
+              defaultValue={String(defaultValues?.end_month ?? now.getMonth() + 1)}
+            >
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m) => (
+                  <SelectItem key={m} value={String(m)}>{m}月</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400">終了月が決まっていない場合は「未定」を選択してください</p>
+        )}
       </div>
 
       {/* カテゴリ */}

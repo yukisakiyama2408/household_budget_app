@@ -28,7 +28,22 @@ export async function applyFixedExpenses(
   let applied = 0;
   let skipped = 0;
 
+  const currentYM = year * 100 + month;
+
   for (const fe of fixedExpenses) {
+    const startYM = fe.start_year * 100 + fe.start_month;
+    if (currentYM < startYM) {
+      skipped++;
+      continue;
+    }
+    if (fe.end_year !== null && fe.end_month !== null) {
+      const endYM = fe.end_year * 100 + fe.end_month;
+      if (currentYM > endYM) {
+        skipped++;
+        continue;
+      }
+    }
+
     if (appliedIds.has(fe.id)) {
       skipped++;
       continue;
@@ -39,7 +54,7 @@ export async function applyFixedExpenses(
     const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: txData, error: txError } = await (supabase
+    const { error: txError } = await (supabase
       .from("transactions")
       .insert({
         date,
@@ -49,9 +64,7 @@ export async function applyFixedExpenses(
         amount: fe.amount,
         pay_method: fe.pay_method,
         store: fe.store,
-      } as any)
-      .select("id")
-      .single() as any) as { data: { id: number } | null; error: unknown };
+      } as any) as any);
     if (txError) throw txError;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,7 +72,6 @@ export async function applyFixedExpenses(
       fixed_expense_id: fe.id,
       year,
       month,
-      transaction_id: txData?.id,
     });
     if (logInsertError) throw logInsertError;
 
