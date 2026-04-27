@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -18,6 +19,11 @@ type Props = {
 export default function TransactionFilters({ categories }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [month, setMonth] = useState(searchParams.get("month") ?? "");
+
+  useEffect(() => {
+    setMonth(searchParams.get("month") ?? "");
+  }, [searchParams]);
 
   function update(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -31,11 +37,14 @@ export default function TransactionFilters({ categories }: Props) {
       <Input
         type="month"
         className="w-40"
-        defaultValue={searchParams.get("month") ?? ""}
-        onChange={(e) => update("month", e.target.value)}
+        value={month}
+        onChange={(e) => {
+          setMonth(e.target.value);
+          update("month", e.target.value);
+        }}
       />
       <Select
-        defaultValue={searchParams.get("type") ?? ""}
+        value={searchParams.get("type") ?? ""}
         onValueChange={(v) => update("type", v === "all" ? "" : (v ?? ""))}
       >
         <SelectTrigger className="w-32">
@@ -48,7 +57,7 @@ export default function TransactionFilters({ categories }: Props) {
         </SelectContent>
       </Select>
       <Select
-        defaultValue={searchParams.get("category_id") ?? ""}
+        value={searchParams.get("category_id") ?? ""}
         onValueChange={(v) => update("category_id", v === "all" ? "" : (v ?? ""))}
       >
         <SelectTrigger className="w-40">
