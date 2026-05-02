@@ -191,6 +191,35 @@ export async function deleteFixedExpense(id: number) {
   redirect("/fixed");
 }
 
+export async function importTransactions(
+  records: {
+    date: string;
+    content: string;
+    amount: number;
+    type: "income" | "expense";
+    category_id: number | null;
+    pay_method: "Cash" | "Credit" | null;
+    store: string | null;
+  }[]
+): Promise<{ imported: number }> {
+  const supabase = await createClient();
+
+  const BATCH_SIZE = 100;
+  let imported = 0;
+
+  for (let i = 0; i < records.length; i += BATCH_SIZE) {
+    const batch = records.slice(i, i + BATCH_SIZE);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await supabase.from("transactions").insert(batch as any);
+    if (error) throw new Error(error.message);
+    imported += batch.length;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/transactions");
+  return { imported };
+}
+
 export async function applyFixedExpensesAction(
   year: number,
   month: number

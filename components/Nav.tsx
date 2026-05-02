@@ -8,6 +8,7 @@ const links = [
   { href: "/transactions", label: "収支" },
   { href: "/budget", label: "予算" },
   { href: "/fixed", label: "固定費" },
+  { href: "/import", label: "インポート" },
 ];
 
 export default function Nav() {
