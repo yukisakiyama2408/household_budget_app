@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import NewEntryButton from "@/components/NewEntryButton";
 import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions } from "@/lib/data";
 
 function fmt(n: number) {
@@ -32,12 +33,7 @@ export default async function HomePage() {
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">{year}年{month}月</p>
-        <Link
-          href="/transactions/new"
-          className="px-3 py-1.5 bg-gray-900 text-white text-sm font-medium rounded hover:bg-gray-700 transition-colors"
-        >
-          + 新規登録
-        </Link>
+        <NewEntryButton />
       </div>
 
       {/* 残高 + 今月収支 */}

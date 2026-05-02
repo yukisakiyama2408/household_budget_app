@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { getTransactions, getCategories } from "@/lib/data";
 import TransactionFilters from "@/components/transactions/TransactionFilters";
+import NewEntryButton from "@/components/NewEntryButton";
 
 type Props = {
   searchParams: Promise<{
@@ -34,9 +34,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">収支一覧</h1>
-          <Link href="/transactions/new">
-            <Button>+ 新規登録</Button>
-          </Link>
+          <NewEntryButton />
         </div>
 
         <TransactionFilters categories={categories} />
