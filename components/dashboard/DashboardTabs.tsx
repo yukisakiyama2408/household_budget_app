@@ -2,10 +2,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-type View = "monthly" | "yearly" | "daily";
+type View = "monthly" | "weekly" | "yearly" | "daily";
 
 const tabs: { key: View; label: string }[] = [
   { key: "monthly", label: "月次" },
+  { key: "weekly", label: "週次" },
   { key: "yearly", label: "年次" },
   { key: "daily", label: "日次" },
 ];
@@ -21,7 +22,7 @@ export default function DashboardTabs({ activeView }: { activeView: View }) {
     const monthParam = searchParams.get("month");
     const yearParam = searchParams.get("year");
 
-    if (view === "monthly") {
+    if (view === "monthly" || view === "weekly") {
       if (monthParam) {
         params.set("month", monthParam);
       } else if (yearParam) {

@@ -139,6 +139,90 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
   return result;
 }
 
+export type WeekCategoryData = {
+  id: number | null;
+  name: string;
+  color: string;
+  amount: number;
+};
+
+export type WeekData = {
+  label: string;
+  startDate: string;
+  endDate: string;
+  income: number;
+  expense: number;
+  categories: WeekCategoryData[];
+};
+
+export async function getWeeklyData(year: number, month: number): Promise<WeekData[]> {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmtDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const monthStart = new Date(year, month - 1, 1);
+  const dow = monthStart.getDay();
+  const firstMonday = new Date(monthStart);
+  firstMonday.setDate(firstMonday.getDate() - (dow === 0 ? 6 : dow - 1));
+
+  const monthEnd = new Date(year, month, 0);
+  const dowEnd = monthEnd.getDay();
+  const lastSunday = new Date(monthEnd);
+  lastSunday.setDate(lastSunday.getDate() + (dowEnd === 0 ? 0 : 7 - dowEnd));
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("date, amount, type, category_id, categories(name, color)")
+    .gte("date", fmtDate(firstMonday))
+    .lte("date", fmtDate(lastSunday));
+  if (error) throw error;
+  const rows = (data ?? []) as {
+    date: string;
+    amount: number;
+    type: string;
+    category_id: number | null;
+    categories: { name: string; color: string | null } | null;
+  }[];
+
+  const weeks: WeekData[] = [];
+  const cursor = new Date(firstMonday);
+
+  while (cursor <= lastSunday) {
+    const wStart = new Date(cursor);
+    const wEnd = new Date(cursor);
+    wEnd.setDate(wEnd.getDate() + 6);
+
+    const wStartStr = fmtDate(wStart);
+    const wEndStr = fmtDate(wEnd);
+
+    const [, sm, sd] = wStartStr.split("-");
+    const [, em, ed] = wEndStr.split("-");
+    const label =
+      sm === em
+        ? `${parseInt(sm)}/${parseInt(sd)}-${parseInt(ed)}`
+        : `${parseInt(sm)}/${parseInt(sd)}-${parseInt(em)}/${parseInt(ed)}`;
+
+    const weekTx = rows.filter((t) => t.date >= wStartStr && t.date <= wEndStr);
+    const income = weekTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+    const expense = weekTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+
+    const catMap = new Map<string, WeekCategoryData>();
+    for (const tx of weekTx.filter((t) => t.type === "expense")) {
+      const key = String(tx.category_id ?? "none");
+      const name = tx.categories?.name ?? "未分類";
+      const color = tx.categories?.color ?? "#B3B3B3";
+      const prev = catMap.get(key) ?? { id: tx.category_id, name, color, amount: 0 };
+      catMap.set(key, { ...prev, amount: prev.amount + tx.amount });
+    }
+    const categories = Array.from(catMap.values()).sort((a, b) => b.amount - a.amount);
+
+    weeks.push({ label, startDate: wStartStr, endDate: wEndStr, income, expense, categories });
+    cursor.setDate(cursor.getDate() + 7);
+  }
+
+  return weeks;
+}
+
 export async function getCreditSettlements(year: number): Promise<CreditSettlement[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
