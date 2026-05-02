@@ -27,7 +27,7 @@ export default function NewEntryButton() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+        <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
           <Link
             href="/transactions/new"
             onClick={() => setOpen(false)}
@@ -40,7 +40,7 @@ export default function NewEntryButton() {
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
           >
-            CSVインポート
+            CSVをアップロード
           </Link>
         </div>
       )}

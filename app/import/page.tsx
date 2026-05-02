@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import CsvImportForm from "@/components/import/CsvImportForm";
+import ImportTabs from "@/components/import/ImportTabs";
 import type { Category } from "@/types/database";
 
 export default async function ImportPage() {
@@ -12,7 +12,7 @@ export default async function ImportPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <h1 className="text-lg font-semibold mb-6">CSVインポート</h1>
-      <CsvImportForm categories={(categories ?? []) as Category[]} />
+      <ImportTabs categories={(categories ?? []) as Category[]} />
     </div>
   );
 }
