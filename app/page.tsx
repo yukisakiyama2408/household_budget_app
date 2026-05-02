@@ -30,7 +30,15 @@ export default async function HomePage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      <p className="text-sm text-gray-500">{year}年{month}月</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">{year}年{month}月</p>
+        <Link
+          href="/transactions/new"
+          className="px-3 py-1.5 bg-gray-900 text-white text-sm font-medium rounded hover:bg-gray-700 transition-colors"
+        >
+          + 新規登録
+        </Link>
+      </div>
 
       {/* 残高 + 今月収支 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
