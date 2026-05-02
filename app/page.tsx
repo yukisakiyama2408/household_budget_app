@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import NewEntryButton from "@/components/NewEntryButton";
-import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions } from "@/lib/data";
+import PaceCard from "@/components/dashboard/PaceCard";
+import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace } from "@/lib/data";
 
 function fmt(n: number) {
   return `¥${Math.abs(n).toLocaleString("ja-JP")}`;
@@ -28,6 +29,8 @@ export default async function HomePage() {
     .filter((i) => i.budgetAmount > 0)
     .sort((a, b) => b.actualAmount / b.budgetAmount - a.actualAmount / a.budgetAmount)
     .slice(0, 3);
+
+  const pace = calcPace(year, month, summary.expense, totalBudget);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
@@ -71,6 +74,9 @@ export default async function HomePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ペース */}
+      <PaceCard {...pace} />
 
       {/* 予算消化 + 直近取引 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

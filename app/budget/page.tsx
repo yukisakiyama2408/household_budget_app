@@ -2,7 +2,8 @@ import BudgetYearSelector from "@/components/budget/BudgetYearSelector";
 import MonthSelector from "@/components/budget/MonthSelector";
 import BudgetTable from "@/components/budget/BudgetTable";
 import YearlyBudgetForm from "@/components/budget/YearlyBudgetForm";
-import { getBudgetData, getYearlyBudget } from "@/lib/data";
+import PaceCard from "@/components/dashboard/PaceCard";
+import { getBudgetData, getYearlyBudget, calcPace } from "@/lib/data";
 
 type Props = {
   searchParams: Promise<{ year?: string; month?: string }>;
@@ -22,6 +23,10 @@ export default async function BudgetPage({ searchParams }: Props) {
     getYearlyBudget(year),
     getBudgetData(year, month),
   ]);
+
+  const totalMonthlyBudget = monthlyItems.reduce((s, i) => s + i.budgetAmount, 0);
+  const totalMonthlyActual = monthlyItems.reduce((s, i) => s + i.actualAmount, 0);
+  const pace = calcPace(year, month, totalMonthlyActual, totalMonthlyBudget);
 
   const yearlyRemaining = yearlyBudget.budgetAmount - yearlyBudget.actualAmount;
   const yearlyIsOver = yearlyBudget.actualAmount > yearlyBudget.budgetAmount && yearlyBudget.budgetAmount > 0;
@@ -78,6 +83,7 @@ export default async function BudgetPage({ searchParams }: Props) {
           <h2 className="text-base font-semibold text-gray-700">月次予算（カテゴリ別）</h2>
           <MonthSelector year={year} month={month} />
         </div>
+        <PaceCard {...pace} />
         <BudgetTable items={monthlyItems} year={year} month={month} />
       </section>
     </div>

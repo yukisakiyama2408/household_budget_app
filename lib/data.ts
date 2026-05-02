@@ -1,6 +1,51 @@
 import { createClient } from "@/utils/supabase/server";
 import type { Budget, Category, CreditSettlement, FixedExpense, FixedExpenseLog, Transaction } from "@/types/database";
 
+export type PaceData = {
+  dayOfMonth: number;
+  daysInMonth: number;
+  daysRemaining: number;
+  totalExpense: number;
+  totalBudget: number;
+  dailyAverage: number;
+  projectedTotal: number;
+  projectedDiff: number;  // 正 = 超過, 負 = 余り
+  safeDaily: number;
+  budgetRemaining: number;
+};
+
+export function calcPace(
+  year: number,
+  month: number,
+  totalExpense: number,
+  totalBudget: number
+): PaceData {
+  const now = new Date();
+  const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const dayOfMonth = isCurrentMonth ? now.getDate() : daysInMonth;
+  const daysRemaining = Math.max(daysInMonth - dayOfMonth, 0);
+
+  const dailyAverage = dayOfMonth > 0 ? totalExpense / dayOfMonth : 0;
+  const projectedTotal = Math.round(dailyAverage * daysInMonth);
+  const projectedDiff = totalBudget > 0 ? projectedTotal - totalBudget : 0;
+  const budgetRemaining = totalBudget - totalExpense;
+  const safeDaily = daysRemaining > 0 ? Math.max(budgetRemaining, 0) / daysRemaining : 0;
+
+  return {
+    dayOfMonth,
+    daysInMonth,
+    daysRemaining,
+    totalExpense,
+    totalBudget,
+    dailyAverage,
+    projectedTotal,
+    projectedDiff,
+    safeDaily,
+    budgetRemaining,
+  };
+}
+
 export type FixedExpenseWithCategory = FixedExpense & {
   categories: { name: string; color: string | null } | null;
 };
@@ -221,6 +266,50 @@ export async function getWeeklyData(year: number, month: number): Promise<WeekDa
   }
 
   return weeks;
+}
+
+export type DailyTrendPoint = {
+  day: number;
+  actual: number;
+  average: number;
+};
+
+export async function getDailySpendingTrend(year: number, month: number): Promise<DailyTrendPoint[]> {
+  const supabase = await createClient();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const now = new Date();
+  const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
+  const lastDay = isCurrentMonth ? now.getDate() : daysInMonth;
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("date, amount")
+    .eq("type", "expense")
+    .gte("date", `${year}-${pad(month)}-01`)
+    .lte("date", `${year}-${pad(month)}-${pad(daysInMonth)}`);
+  if (error) throw error;
+
+  const dailyMap = new Map<number, number>();
+  for (const tx of (data ?? []) as { date: string; amount: number }[]) {
+    const day = parseInt(tx.date.split("-")[2]);
+    dailyMap.set(day, (dailyMap.get(day) ?? 0) + tx.amount);
+  }
+
+  const WINDOW = 7;
+  const result: DailyTrendPoint[] = [];
+
+  for (let d = 1; d <= lastDay; d++) {
+    const actual = dailyMap.get(d) ?? 0;
+    let sum = 0;
+    for (let i = Math.max(1, d - WINDOW + 1); i <= d; i++) {
+      sum += dailyMap.get(i) ?? 0;
+    }
+    const count = d < WINDOW ? d : WINDOW;
+    result.push({ day: d, actual, average: Math.round(sum / count) });
+  }
+
+  return result;
 }
 
 export async function getCreditSettlements(year: number): Promise<CreditSettlement[]> {

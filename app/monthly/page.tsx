@@ -8,6 +8,7 @@ import YearSelector from "@/components/yearly/YearSelector";
 import DailyTable from "@/components/daily/DailyTable";
 import WeekSelector from "@/components/dashboard/WeekSelector";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
+import TrendLineChart from "@/components/dashboard/TrendLineChart";
 import {
   getMonthlySummary,
   getCategoryBreakdown,
@@ -15,6 +16,7 @@ import {
   getYearlySummary,
   getDailyData,
   getWeeklyData,
+  getDailySpendingTrend,
 } from "@/lib/data";
 
 type View = "monthly" | "weekly" | "yearly" | "daily";
@@ -152,9 +154,10 @@ export default async function DashboardPage({ searchParams }: Props) {
     const [year, mon] = params.month
       ? params.month.split("-").map(Number)
       : [now.getFullYear(), now.getMonth() + 1];
-    const [summary, categoryData] = await Promise.all([
+    const [summary, categoryData, dailyTrend] = await Promise.all([
       getMonthlySummary(year, mon),
       getCategoryBreakdown(year, mon),
+      getDailySpendingTrend(year, mon),
     ]);
     content = (
       <>
@@ -164,6 +167,14 @@ export default async function DashboardPage({ searchParams }: Props) {
           expense={summary.expense}
           balance={summary.balance}
         />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">日別支出トレンド</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TrendLineChart data={dailyTrend} />
+          </CardContent>
+        </Card>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
