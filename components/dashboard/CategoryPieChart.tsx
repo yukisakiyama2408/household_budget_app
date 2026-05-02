@@ -27,21 +27,22 @@ export default function CategoryPieChart({ data }: Props) {
     );
   }
 
-  // Recharts v3: fillをデータに含めることでCell不要
   const chartData = data.map((d) => ({ ...d, value: d.amount, fill: d.color }));
 
   return (
-    <ResponsiveContainer width="100%" height={320}>
+    <ResponsiveContainer width="100%" height={340}>
       <PieChart>
         <Pie
           data={chartData}
           dataKey="value"
           nameKey="name"
           cx="50%"
-          cy="50%"
-          outerRadius={100}
+          cy="45%"
+          outerRadius={90}
           label={({ name, percent }) =>
-            `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
+            (percent ?? 0) >= 0.05
+              ? `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
+              : ""
           }
           labelLine={false}
         />
