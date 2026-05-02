@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import Papa from "papaparse";
-import { importTransactions } from "@/lib/actions";
+import { importTransactions, fetchTransactionsForDuplicateCheck } from "@/lib/actions";
 import type { Category } from "@/types/database";
 
 type ParsedRow = {
@@ -37,9 +37,21 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [filterStart, setFilterStart] = useState("");
   const [filterEnd, setFilterEnd] = useState("");
+  const [existingTx, setExistingTx] = useState<{ date: string; amount: number; store: string | null }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<{ imported: number } | null>(null);
+
+  function getDuplicateLevel(row: ParsedRow): "high" | "low" | null {
+    const matches = existingTx.filter(
+      (t) => t.date === row.date && t.amount === row.amount
+    );
+    if (matches.length === 0) return null;
+    const storeMatch = matches.some(
+      (t) => t.store && row.store && t.store === row.store
+    );
+    return storeMatch ? "high" : "low";
+  }
 
   const indexedRows = rows.map((row, originalIndex) => ({ row, originalIndex }));
   const filteredIndexedRows = indexedRows.filter(({ row }) => {
@@ -125,6 +137,12 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
           }
 
           setRows(parsed);
+
+          const minDate = parsed[0].date;
+          const maxDate = parsed[parsed.length - 1].date;
+          fetchTransactionsForDuplicateCheck(minDate, maxDate)
+            .then(setExistingTx)
+            .catch(() => {});
         },
       });
     };
@@ -246,8 +264,10 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
                 </tr>
               </thead>
               <tbody>
-                {filteredIndexedRows.map(({ row, originalIndex }) => (
-                  <tr key={originalIndex} className="border-b hover:bg-gray-50">
+                {filteredIndexedRows.map(({ row, originalIndex }) => {
+                  const dupLevel = getDuplicateLevel(row);
+                  return (
+                  <tr key={originalIndex} className={`border-b ${dupLevel === "high" ? "bg-orange-50" : dupLevel === "low" ? "bg-yellow-50" : "hover:bg-gray-50"}`}>
                     <td className="py-2 pr-3">
                       <select
                         value={row.type}
@@ -291,7 +311,12 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
                         onChange={(e) => updateRow(originalIndex, "store", e.target.value || null)}
                       />
                     </td>
-                    <td className="py-2">
+                    <td className="py-2 whitespace-nowrap">
+                      {dupLevel && (
+                        <span className={`mr-2 text-xs px-1.5 py-0.5 rounded font-medium ${dupLevel === "high" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"}`}>
+                          {dupLevel === "high" ? "重複の可能性大" : "重複の可能性"}
+                        </span>
+                      )}
                       <button
                         onClick={() => removeRow(originalIndex)}
                         className="text-gray-400 hover:text-red-500 transition-colors text-xs"
@@ -300,7 +325,8 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

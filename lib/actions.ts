@@ -191,6 +191,20 @@ export async function deleteFixedExpense(id: number) {
   redirect("/fixed");
 }
 
+export async function fetchTransactionsForDuplicateCheck(
+  startDate: string,
+  endDate: string
+): Promise<{ date: string; amount: number; store: string | null }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("date, amount, store")
+    .gte("date", startDate)
+    .lte("date", endDate);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as { date: string; amount: number; store: string | null }[];
+}
+
 export async function importTransactions(
   records: {
     date: string;
