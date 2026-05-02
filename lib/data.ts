@@ -163,11 +163,13 @@ export async function getTransactions({
   month,
   type,
   categoryId,
+  payMethod,
   limit,
 }: {
   month?: string;
   type?: string;
   categoryId?: string;
+  payMethod?: string;
   limit?: number;
 } = {}) {
   const supabase = await createClient();
@@ -191,6 +193,9 @@ export async function getTransactions({
   }
   if (categoryId) {
     query = query.eq("category_id", parseInt(categoryId));
+  }
+  if (payMethod && (payMethod === "Cash" || payMethod === "Credit")) {
+    query = query.eq("pay_method", payMethod);
   }
   if (limit) {
     query = query.limit(limit);

@@ -72,6 +72,19 @@ export default function TransactionFilters({ categories }: Props) {
           ))}
         </SelectContent>
       </Select>
+      <Select
+        value={searchParams.get("pay_method") ?? ""}
+        onValueChange={(v) => update("pay_method", v === "all" ? "" : (v ?? ""))}
+      >
+        <SelectTrigger className="w-32">
+          <SelectValue placeholder="支払方法" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">すべて</SelectItem>
+          <SelectItem value="Cash">Cash</SelectItem>
+          <SelectItem value="Credit">Credit</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }

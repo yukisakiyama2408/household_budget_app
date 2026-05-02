@@ -8,6 +8,7 @@ type Props = {
     month?: string;
     type?: string;
     category_id?: string;
+    pay_method?: string;
   }>;
 };
 
@@ -18,6 +19,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
       month: params.month,
       type: params.type,
       categoryId: params.category_id,
+      payMethod: params.pay_method,
     }),
     getCategories(),
   ]);
@@ -61,6 +63,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">日付</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">内容</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">店舗</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">カテゴリ</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">金額</th>
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">支払</th>
@@ -70,7 +73,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
             <tbody>
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <td colSpan={7} className="text-center py-12 text-muted-foreground">
                     データがありません
                   </td>
                 </tr>
@@ -81,6 +84,9 @@ export default async function TransactionsPage({ searchParams }: Props) {
                     <tr key={t.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 whitespace-nowrap">{t.date}</td>
                       <td className="px-4 py-3">{t.content}</td>
+                      <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">
+                        {t.store ?? "-"}
+                      </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
                         {cat ? (
                           <span className="flex items-center gap-1.5">
