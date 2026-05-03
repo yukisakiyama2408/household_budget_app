@@ -25,16 +25,29 @@ type WeeklyProps = {
 
 type Props = MonthlyProps | WeeklyProps;
 
-function parseGeminiOutput(text: string): Map<string, number> {
-  const result = new Map<string, number>();
+type Parsed = { categories: Map<string, number>; total: number | undefined };
+
+function parseGeminiOutput(text: string): Parsed {
+  const categories = new Map<string, number>();
+  let total: number | undefined;
+
   for (const line of text.split("\n")) {
-    const match = line.match(/[-\s]*(.+?)：¥([\d,]+)/);
+    // 行頭の記号・Markdownの**を除去してから「名前：金額」を抽出
+    // 対応: 全角コロン「：」・半角コロン「:」、¥あり/なし、カンマあり/なし
+    const match = line.match(/^[-*\s]*\**([^*\n：:]+?)\**\s*[：:]\s*¥?\s*([\d,]+)/);
     if (!match) continue;
     const name = match[1].trim();
     const amount = parseInt(match[2].replace(/,/g, ""), 10);
-    if (!isNaN(amount)) result.set(name, amount);
+    if (isNaN(amount) || amount < 0) continue;
+
+    if (name.includes("合計予算")) {
+      total = amount;
+    } else {
+      categories.set(name, amount);
+    }
   }
-  return result;
+
+  return { categories, total };
 }
 
 export default function GeminiBudgetImport(props: Props) {
@@ -43,15 +56,13 @@ export default function GeminiBudgetImport(props: Props) {
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
 
-  const parsed = text ? parseGeminiOutput(text) : new Map<string, number>();
+  const parsed = text ? parseGeminiOutput(text) : { categories: new Map<string, number>(), total: undefined };
 
   const categoryEntries = props.categories
-    .map((c) => ({ ...c, amount: parsed.get(c.name) }))
+    .map((c) => ({ ...c, amount: parsed.categories.get(c.name) }))
     .filter((c): c is CategoryEntry & { amount: number } => c.amount !== undefined);
 
-  const totalKey =
-    props.type === "monthly" ? "月次合計予算（上限）" : "週次合計予算（上限）";
-  const totalAmount = parsed.get(totalKey);
+  const totalAmount = parsed.total;
 
   const hasData = categoryEntries.length > 0 || totalAmount !== undefined;
 
@@ -121,7 +132,7 @@ export default function GeminiBudgetImport(props: Props) {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={`【来${props.type === "monthly" ? "月" : "週"}の推奨予算】\n- 食費：¥XX,XXX\n- 外食費：¥XX,XXX\n...\n- ${totalKey}：¥XXX,XXX`}
+            placeholder={`【来${props.type === "monthly" ? "月" : "週"}の推奨予算】\n- 食費：¥XX,XXX\n- 外食費：¥XX,XXX\n...\n- ${props.type === "monthly" ? "月次" : "週次"}合計予算（上限）：¥XXX,XXX`}
             rows={6}
             className="w-full border rounded px-3 py-2 text-sm font-mono resize-none bg-white"
           />
