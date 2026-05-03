@@ -416,9 +416,31 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
+  const today = now.toISOString().substring(0, 10);
 
-  const hasSavings = goals.some((g) => g.type === "savings");
-  const currentBalance = hasSavings ? await getCurrentBalance() : 0;
+  // 貯金目標：目標作成日から今日までの収支累積（収入 - 支出）
+  const savingsGoals = goals.filter((g) => g.type === "savings");
+  const savingsNetMap = new Map<number, number>();
+  if (savingsGoals.length > 0) {
+    const earliestDate = savingsGoals
+      .map((g) => g.created_at.substring(0, 10))
+      .sort()[0];
+    const { data: txData, error: txError } = await supabase
+      .from("transactions")
+      .select("date, amount, type")
+      .gte("date", earliestDate)
+      .lte("date", today);
+    if (txError) throw txError;
+    const txRows = (txData ?? []) as { date: string; amount: number; type: string }[];
+    for (const g of savingsGoals) {
+      const startDate = g.created_at.substring(0, 10);
+      const net = txRows.reduce((sum, t) => {
+        if (t.date < startDate) return sum;
+        return t.type === "income" ? sum + t.amount : sum - t.amount;
+      }, 0);
+      savingsNetMap.set(g.id, net);
+    }
+  }
 
   const expenseCategoryIds = goals
     .filter((g) => g.type === "expense" && g.category_id != null)
@@ -443,7 +465,7 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
   return goals.map((g) => {
     const currentAmount =
       g.type === "savings"
-        ? currentBalance
+        ? (savingsNetMap.get(g.id) ?? 0)
         : (g.category_id ? (categoryExpenses.get(g.category_id) ?? 0) : 0);
     const rawProgress = g.target_amount > 0 ? currentAmount / g.target_amount : 0;
     const isOnTrack = g.type === "savings" ? rawProgress >= 1 : currentAmount <= g.target_amount;
