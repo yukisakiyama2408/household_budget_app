@@ -2,7 +2,32 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import NewEntryButton from "@/components/NewEntryButton";
 import PaceCard from "@/components/dashboard/PaceCard";
-import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace } from "@/lib/data";
+import CheckinBanner from "@/components/home/CheckinBanner";
+import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getCheckinForWeek } from "@/lib/data";
+
+function fmtDate(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function getCurrentWeekBounds(date: Date): { start: string; end: string; label: string } {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const start = new Date(d);
+  start.setDate(d.getDate() + diff);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const startStr = fmtDate(start);
+  const endStr = fmtDate(end);
+  const [, sm, sd] = startStr.split("-");
+  const [, em, ed] = endStr.split("-");
+  const label =
+    sm === em
+      ? `${parseInt(sm)}/${parseInt(sd)}-${parseInt(ed)}`
+      : `${parseInt(sm)}/${parseInt(sd)}-${parseInt(em)}/${parseInt(ed)}`;
+  return { start: startStr, end: endStr, label };
+}
 
 function fmt(n: number) {
   return `¥${Math.abs(n).toLocaleString("ja-JP")}`;
@@ -13,11 +38,13 @@ export default async function HomePage() {
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  const [balance, summary, budgetItems, recentTx] = await Promise.all([
+  const currentWeek = getCurrentWeekBounds(now);
+  const [balance, summary, budgetItems, recentTx, checkedIn] = await Promise.all([
     getCurrentBalance(),
     getMonthlySummary(year, month),
     getBudgetData(year, month),
     getTransactions({ limit: 5 }),
+    getCheckinForWeek(currentWeek.start),
   ]);
 
   const totalBudget = budgetItems.reduce((s, i) => s + i.budgetAmount, 0);
@@ -74,6 +101,9 @@ export default async function HomePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* チェックインバナー */}
+      {!checkedIn && <CheckinBanner weekLabel={currentWeek.label} />}
 
       {/* ペース */}
       <PaceCard {...pace} />

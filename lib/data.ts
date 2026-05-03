@@ -312,6 +312,70 @@ export async function getDailySpendingTrend(year: number, month: number): Promis
   return result;
 }
 
+export type WeekSummaryData = {
+  startDate: string;
+  endDate: string;
+  label: string;
+  income: number;
+  expense: number;
+  categories: WeekCategoryData[];
+};
+
+export async function getWeekSummaryForDates(startDate: string, endDate: string): Promise<WeekSummaryData> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("date, amount, type, category_id, categories(name, color)")
+    .gte("date", startDate)
+    .lte("date", endDate);
+  if (error) throw error;
+
+  const rows = (data ?? []) as {
+    date: string;
+    amount: number;
+    type: string;
+    category_id: number | null;
+    categories: { name: string; color: string | null } | null;
+  }[];
+
+  const income = rows.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const expense = rows.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+
+  const catMap = new Map<string, WeekCategoryData>();
+  for (const tx of rows.filter((t) => t.type === "expense")) {
+    const key = String(tx.category_id ?? "none");
+    const name = tx.categories?.name ?? "未分類";
+    const color = tx.categories?.color ?? "#B3B3B3";
+    const prev = catMap.get(key) ?? { id: tx.category_id, name, color, amount: 0 };
+    catMap.set(key, { ...prev, amount: prev.amount + tx.amount });
+  }
+  const categories = Array.from(catMap.values()).sort((a, b) => b.amount - a.amount);
+
+  const [, sm, sd] = startDate.split("-");
+  const [, em, ed] = endDate.split("-");
+  const label =
+    sm === em
+      ? `${parseInt(sm)}/${parseInt(sd)}-${parseInt(ed)}`
+      : `${parseInt(sm)}/${parseInt(sd)}-${parseInt(em)}/${parseInt(ed)}`;
+
+  return { startDate, endDate, label, income, expense, categories };
+}
+
+export async function getCheckinForWeek(weekStart: string): Promise<boolean> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from("check_ins") as any)
+    .select("id")
+    .eq("week_start", weekStart)
+    .maybeSingle();
+  // テーブル未作成時は false として扱う（42P01 = undefined_table）
+  if (error) {
+    if (error.code === "42P01") return false;
+    throw error;
+  }
+  return data !== null;
+}
+
 export async function getCreditSettlements(year: number): Promise<CreditSettlement[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
