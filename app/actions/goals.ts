@@ -21,7 +21,7 @@ export async function createGoal(formData: FormData) {
     category_id: categoryId,
   });
   if (error) throw error;
-  revalidatePath("/goals");
+  revalidatePath("/budget");
   revalidatePath("/");
 }
 
@@ -30,6 +30,6 @@ export async function deleteGoal(id: number) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from("goals") as any).delete().eq("id", id);
   if (error) throw error;
-  revalidatePath("/goals");
+  revalidatePath("/budget");
   revalidatePath("/");
 }

@@ -9,6 +9,10 @@ import DailyTable from "@/components/daily/DailyTable";
 import WeekSelector from "@/components/dashboard/WeekSelector";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import TrendLineChart from "@/components/dashboard/TrendLineChart";
+import PageTabs from "@/components/PageTabs";
+import InsightCards from "@/components/insights/InsightCards";
+import CsvExport from "@/components/insights/CsvExport";
+import GeminiPrompt from "@/components/insights/GeminiPrompt";
 import {
   getMonthlySummary,
   getCategoryBreakdown,
@@ -17,18 +21,71 @@ import {
   getDailyData,
   getWeeklyData,
   getDailySpendingTrend,
+  getBudgetData,
 } from "@/lib/data";
 
 type View = "monthly" | "weekly" | "yearly" | "daily";
 
+const ANALYSIS_TABS = [
+  { key: "stats", label: "統計" },
+  { key: "insights", label: "インサイト" },
+];
+
 type Props = {
-  searchParams: Promise<{ view?: string; month?: string; year?: string; week?: string }>;
+  searchParams: Promise<{ view?: string; month?: string; year?: string; week?: string; tab?: string }>;
 };
 
 export default async function DashboardPage({ searchParams }: Props) {
   const params = await searchParams;
+  const tab = params.tab ?? "stats";
+  const isInsightsTab = tab === "insights";
   const view = (params.view ?? "monthly") as View;
   const now = new Date();
+
+  if (isInsightsTab) {
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+
+    const [currentItems, prevBreakdown] = await Promise.all([
+      getBudgetData(year, month),
+      getCategoryBreakdown(prevYear, prevMonth),
+    ]);
+    const totalExpense = currentItems.reduce((s, i) => s + i.actualAmount, 0);
+
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        <PageTabs tabs={ANALYSIS_TABS} currentTab={tab} basePath="/monthly" />
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-gray-700">今月のアラート・気づき</h2>
+          <InsightCards currentItems={currentItems} prevBreakdown={prevBreakdown} totalExpense={totalExpense} />
+        </section>
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-gray-700">データエクスポート</h2>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">CSVダウンロード</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CsvExport />
+            </CardContent>
+          </Card>
+        </section>
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-gray-700">Gemini で分析する</h2>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">プロンプトテンプレート</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <GeminiPrompt />
+            </CardContent>
+          </Card>
+        </section>
+      </div>
+    );
+  }
 
   let content: React.ReactNode;
   const isDaily = view === "daily";
@@ -199,7 +256,8 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+        <PageTabs tabs={ANALYSIS_TABS} currentTab={tab} basePath="/monthly" />
         <DashboardTabs activeView={view} />
       </div>
       <div className={`${isDaily ? "max-w-full" : "max-w-5xl mx-auto"} px-4 pb-8 space-y-6`}>

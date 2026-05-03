@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import NewEntryButton from "@/components/NewEntryButton";
 import PaceCard from "@/components/dashboard/PaceCard";
-import CheckinBanner from "@/components/home/CheckinBanner";
 import GoalProgress from "@/components/home/GoalProgress";
-import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getCheckinForWeek, getGoalsWithProgress } from "@/lib/data";
+import CheckinView from "@/components/checkin/CheckinView";
+import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getCheckinForWeek, getGoalsWithProgress, getWeekSummaryForDates } from "@/lib/data";
 
 function fmtDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -40,13 +40,21 @@ export default async function HomePage() {
   const month = now.getMonth() + 1;
 
   const currentWeek = getCurrentWeekBounds(now);
-  const [balance, summary, budgetItems, recentTx, checkedIn, goals] = await Promise.all([
+  const prevWeekStart = new Date(currentWeek.start);
+  prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+  const prevWeekEnd = new Date(currentWeek.end);
+  prevWeekEnd.setDate(prevWeekEnd.getDate() - 7);
+  const prevWeek = { start: fmtDate(prevWeekStart), end: fmtDate(prevWeekEnd) };
+
+  const [balance, summary, budgetItems, recentTx, checkedIn, goals, currentWeekData, prevWeekData] = await Promise.all([
     getCurrentBalance(),
     getMonthlySummary(year, month),
     getBudgetData(year, month),
     getTransactions({ limit: 5 }),
     getCheckinForWeek(currentWeek.start),
     getGoalsWithProgress(),
+    getWeekSummaryForDates(currentWeek.start, currentWeek.end),
+    getWeekSummaryForDates(prevWeek.start, prevWeek.end),
   ]);
 
   const totalBudget = budgetItems.reduce((s, i) => s + i.budgetAmount, 0);
@@ -104,8 +112,13 @@ export default async function HomePage() {
         </Card>
       </div>
 
-      {/* チェックインバナー */}
-      {!checkedIn && <CheckinBanner weekLabel={currentWeek.label} />}
+      {/* 週次チェックイン */}
+      <CheckinView
+        currentWeek={currentWeekData}
+        prevWeek={prevWeekData}
+        alreadyCheckedIn={checkedIn}
+        weekStart={currentWeek.start}
+      />
 
       {/* ペース */}
       <PaceCard {...pace} />
