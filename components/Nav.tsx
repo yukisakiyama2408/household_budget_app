@@ -9,6 +9,7 @@ const links = [
   { href: "/budget", label: "予算" },
   { href: "/fixed", label: "固定費" },
   { href: "/checkin", label: "チェックイン" },
+  { href: "/insights", label: "インサイト" },
 ];
 
 export default function Nav() {

@@ -402,12 +402,16 @@ export async function getTransactions({
   categoryId,
   payMethod,
   limit,
+  dateFrom,
+  dateTo,
 }: {
   month?: string;
   type?: string;
   categoryId?: string;
   payMethod?: string;
   limit?: number;
+  dateFrom?: string;
+  dateTo?: string;
 } = {}) {
   const supabase = await createClient();
   let query = supabase
@@ -425,6 +429,8 @@ export async function getTransactions({
         : `${y}-${String(m + 1).padStart(2, "0")}-01`;
     query = query.gte("date", start).lt("date", end);
   }
+  if (dateFrom) query = query.gte("date", dateFrom);
+  if (dateTo) query = query.lte("date", dateTo);
   if (type && (type === "income" || type === "expense")) {
     query = query.eq("type", type);
   }
@@ -436,11 +442,23 @@ export async function getTransactions({
   }
   if (limit) {
     query = query.limit(limit);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as TransactionWithCategory[];
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as TransactionWithCategory[];
+  // limit 未指定時は全件ページネーション取得
+  const all: TransactionWithCategory[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const batch = (data ?? []) as TransactionWithCategory[];
+    all.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return all;
 }
 
 export async function getCurrentBalance(): Promise<number> {
