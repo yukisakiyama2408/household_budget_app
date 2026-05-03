@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import NewEntryButton from "@/components/NewEntryButton";
 import PaceCard from "@/components/dashboard/PaceCard";
 import CheckinBanner from "@/components/home/CheckinBanner";
-import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getCheckinForWeek } from "@/lib/data";
+import GoalProgress from "@/components/home/GoalProgress";
+import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getCheckinForWeek, getGoalsWithProgress } from "@/lib/data";
 
 function fmtDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -39,12 +40,13 @@ export default async function HomePage() {
   const month = now.getMonth() + 1;
 
   const currentWeek = getCurrentWeekBounds(now);
-  const [balance, summary, budgetItems, recentTx, checkedIn] = await Promise.all([
+  const [balance, summary, budgetItems, recentTx, checkedIn, goals] = await Promise.all([
     getCurrentBalance(),
     getMonthlySummary(year, month),
     getBudgetData(year, month),
     getTransactions({ limit: 5 }),
     getCheckinForWeek(currentWeek.start),
+    getGoalsWithProgress(),
   ]);
 
   const totalBudget = budgetItems.reduce((s, i) => s + i.budgetAmount, 0);
@@ -107,6 +109,9 @@ export default async function HomePage() {
 
       {/* ペース */}
       <PaceCard {...pace} />
+
+      {/* 目標進捗 */}
+      <GoalProgress goals={goals} />
 
       {/* 予算消化 + 直近取引 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -10,6 +10,7 @@ const links = [
   { href: "/fixed", label: "固定費" },
   { href: "/checkin", label: "チェックイン" },
   { href: "/insights", label: "インサイト" },
+  { href: "/goals", label: "目標" },
 ];
 
 export default function Nav() {

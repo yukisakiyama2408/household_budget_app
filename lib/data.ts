@@ -376,6 +376,88 @@ export async function getCheckinForWeek(weekStart: string): Promise<boolean> {
   return data !== null;
 }
 
+export type GoalType = "savings" | "expense";
+
+export type Goal = {
+  id: number;
+  title: string;
+  type: GoalType;
+  target_amount: number;
+  deadline: string | null;
+  category_id: number | null;
+  created_at: string;
+};
+
+export type GoalWithProgress = Goal & {
+  currentAmount: number;
+  progress: number;  // 0–1 (capped)
+  isOnTrack: boolean;
+  categoryName: string | null;
+  categoryColor: string | null;
+};
+
+export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from("goals") as any)
+    .select("*, categories(name, color)")
+    .order("created_at", { ascending: false });
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+
+  const goals = (data ?? []) as (Goal & {
+    categories: { name: string; color: string | null } | null;
+  })[];
+  if (goals.length === 0) return [];
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+
+  const hasSavings = goals.some((g) => g.type === "savings");
+  const currentBalance = hasSavings ? await getCurrentBalance() : 0;
+
+  const expenseCategoryIds = goals
+    .filter((g) => g.type === "expense" && g.category_id != null)
+    .map((g) => g.category_id as number);
+
+  const categoryExpenses = new Map<number, number>();
+  if (expenseCategoryIds.length > 0) {
+    const { start, end } = getMonthRange(year, month);
+    const { data: txData, error: txError } = await supabase
+      .from("transactions")
+      .select("category_id, amount")
+      .eq("type", "expense")
+      .gte("date", start)
+      .lt("date", end)
+      .in("category_id", expenseCategoryIds);
+    if (txError) throw txError;
+    for (const tx of (txData ?? []) as { category_id: number; amount: number }[]) {
+      categoryExpenses.set(tx.category_id, (categoryExpenses.get(tx.category_id) ?? 0) + tx.amount);
+    }
+  }
+
+  return goals.map((g) => {
+    const currentAmount =
+      g.type === "savings"
+        ? currentBalance
+        : (g.category_id ? (categoryExpenses.get(g.category_id) ?? 0) : 0);
+    const rawProgress = g.target_amount > 0 ? currentAmount / g.target_amount : 0;
+    const isOnTrack = g.type === "savings" ? rawProgress >= 1 : currentAmount <= g.target_amount;
+
+    return {
+      ...g,
+      currentAmount,
+      progress: Math.min(rawProgress, 1),
+      isOnTrack,
+      categoryName: g.categories?.name ?? null,
+      categoryColor: g.categories?.color ?? null,
+    };
+  });
+}
+
 export async function getCreditSettlements(year: number): Promise<CreditSettlement[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
