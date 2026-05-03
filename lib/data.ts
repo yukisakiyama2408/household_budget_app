@@ -523,7 +523,8 @@ export async function getTransactions({
     .from("transactions")
     .select("*, categories(name, color)")
     .order("date", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
 
   if (month) {
     const [y, m] = month.split("-").map(Number);
