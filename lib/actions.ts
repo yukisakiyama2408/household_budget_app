@@ -104,6 +104,42 @@ export async function upsertBudget(year: number, month: number, categoryId: numb
   revalidatePath("/budget");
 }
 
+export async function upsertWeeklyBudget(weekStart: string, categoryId: number, amount: number) {
+  const supabase = await createClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("weekly_budgets") as any)
+    .upsert({ week_start: weekStart, category_id: categoryId, amount }, { onConflict: "week_start,category_id" });
+
+  if (error && error.code !== "42P01") throw new Error(error.message);
+
+  revalidatePath("/budget");
+}
+
+export async function upsertMonthlyTotalBudget(year: number, month: number, amount: number) {
+  const supabase = await createClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("monthly_total_budgets") as any)
+    .upsert({ year, month, amount }, { onConflict: "year,month" });
+
+  if (error && error.code !== "42P01") throw new Error(error.message);
+
+  revalidatePath("/budget");
+}
+
+export async function upsertWeeklyTotalBudget(weekStart: string, amount: number) {
+  const supabase = await createClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("weekly_total_budgets") as any)
+    .upsert({ week_start: weekStart, amount }, { onConflict: "week_start" });
+
+  if (error && error.code !== "42P01") throw new Error(error.message);
+
+  revalidatePath("/budget");
+}
+
 export async function upsertCreditSettlement(year: number, month: number, amount: number) {
   const supabase = await createClient();
 

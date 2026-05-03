@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import type { Budget, Category, CreditSettlement, FixedExpense, FixedExpenseLog, Transaction } from "@/types/database";
+import { getWeeksOfMonth } from "@/lib/dateUtils";
 
 export type PaceData = {
   dayOfMonth: number;
@@ -785,4 +786,105 @@ export async function getBudgetData(year: number, month: number): Promise<Budget
       budgetAmount: budgetMap.get(c.id) ?? 0,
       actualAmount: actualMap.get(c.id) ?? 0,
     }));
+}
+
+export type WeeklyBudgetItem = {
+  category: Category;
+  monthlyBudget: number;
+  weeklyBudgetSet: number;      // weekly_budgets テーブルの登録値（0=未登録）
+  weeklyBudgetDerived: number;  // 月次予算 ÷ 週数（フォールバック）
+  weeklyBudget: number;         // 実効値: 登録済みなら登録値、なければ派生値
+  weeklyActual: number;
+};
+
+export async function getWeeklyBudgetData(
+  year: number,
+  month: number,
+  weekStart: string,
+  weekEnd: string
+): Promise<WeeklyBudgetItem[]> {
+  const supabase = await createClient();
+
+  const [
+    { data: categoryData, error: catError },
+    { data: budgetData, error: budgetError },
+    { data: weekTxData, error: weekTxError },
+    weeklyBudgetResult,
+  ] = await Promise.all([
+    supabase.from("categories").select("*").order("display_order", { ascending: true }),
+    supabase.from("budgets").select("*").eq("year", year).eq("month", month),
+    supabase
+      .from("transactions")
+      .select("category_id, amount")
+      .eq("type", "expense")
+      .gte("date", weekStart)
+      .lte("date", weekEnd),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from("weekly_budgets") as any)
+      .select("category_id, amount")
+      .eq("week_start", weekStart),
+  ]);
+
+  if (catError) throw catError;
+  if (budgetError) throw budgetError;
+  if (weekTxError) throw weekTxError;
+
+  const categories = (categoryData ?? []) as Category[];
+  const budgets = (budgetData ?? []) as Budget[];
+  const weekTx = (weekTxData ?? []) as { category_id: number | null; amount: number }[];
+
+  const weeklyBudgetRaw =
+    weeklyBudgetResult.error?.code === "42P01"
+      ? []
+      : ((weeklyBudgetResult.data ?? []) as { category_id: number; amount: number }[]);
+
+  const budgetMap = new Map(budgets.map((b) => [b.category_id, b.amount]));
+  const weeklyBudgetMap = new Map(weeklyBudgetRaw.map((w) => [w.category_id, w.amount]));
+  const weekActualMap = new Map<number, number>();
+  for (const tx of weekTx) {
+    if (tx.category_id != null) {
+      weekActualMap.set(tx.category_id, (weekActualMap.get(tx.category_id) ?? 0) + tx.amount);
+    }
+  }
+
+  const weeksCount = getWeeksOfMonth(year, month).length;
+
+  return categories
+    .filter((c) => c.type === "expense" || c.type === "both")
+    .map((c) => {
+      const monthly = budgetMap.get(c.id) ?? 0;
+      const derived = weeksCount > 0 ? Math.round(monthly / weeksCount) : 0;
+      const set = weeklyBudgetMap.get(c.id) ?? 0;
+      return {
+        category: c,
+        monthlyBudget: monthly,
+        weeklyBudgetSet: set,
+        weeklyBudgetDerived: derived,
+        weeklyBudget: set > 0 ? set : derived,
+        weeklyActual: weekActualMap.get(c.id) ?? 0,
+      };
+    });
+}
+
+export async function getMonthlyTotalBudget(year: number, month: number): Promise<number> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from("monthly_total_budgets") as any)
+    .select("amount")
+    .eq("year", year)
+    .eq("month", month)
+    .maybeSingle();
+  if (error && error.code !== "42P01") throw error;
+  return (data as { amount: number } | null)?.amount ?? 0;
+}
+
+export async function getWeeklyTotalBudget(weekStart: string): Promise<number> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from("weekly_total_budgets") as any)
+    .select("amount")
+    .eq("week_start", weekStart)
+    .maybeSingle();
+  if (error && error.code !== "42P01") throw error;
+  return (data as { amount: number } | null)?.amount ?? 0;
 }

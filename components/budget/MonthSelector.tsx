@@ -7,13 +7,15 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 type Props = {
   year: number;
   month: number;
+  extraParams?: string;
 };
 
-export default function MonthSelector({ year, month }: Props) {
+export default function MonthSelector({ year, month, extraParams }: Props) {
   const router = useRouter();
 
   function navigate(y: number, m: number) {
-    router.push(`/budget?year=${y}&month=${m}`);
+    const base = `/budget?year=${y}&month=${m}`;
+    router.push(extraParams ? `${base}&${extraParams}` : base);
   }
 
   function prev() {
