@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 const PERIODS = [
+  { value: "week", label: "今週" },
+  { value: "prev_week", label: "先週" },
   { value: "current", label: "今月" },
   { value: "prev", label: "先月" },
   { value: "3months", label: "過去3ヶ月" },
