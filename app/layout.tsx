@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "家計簿",
-  description: "家計簿アプリ",
+  title: "マネメモ",
+  description: "マネメモ - お金の記録と予算管理アプリ",
 };
 
 export default function RootLayout({
