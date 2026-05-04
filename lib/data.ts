@@ -569,10 +569,15 @@ export async function getTransactions({
 
 export async function getCurrentBalance(): Promise<number> {
   const supabase = await createClient();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
 
   const [allRows, { data: settlements, error: setError }] = await Promise.all([
-    fetchAllTransactions(supabase.from("transactions").select("*")),
-    supabase.from("credit_settlements").select("*"),
+    fetchAllTransactions(supabase.from("transactions").select("*").lte("date", todayStr)),
+    supabase.from("credit_settlements").select("*")
+      .or(`year.lt.${currentYear},and(year.eq.${currentYear},month.lte.${currentMonth})`),
   ]);
   if (setError) throw setError;
 
