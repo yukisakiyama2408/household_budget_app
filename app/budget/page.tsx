@@ -10,6 +10,7 @@ import PageTabs from "@/components/PageTabs";
 import GoalCard from "@/components/goals/GoalCard";
 import GoalForm from "@/components/goals/GoalForm";
 import ApplyFixedExpensesButton from "@/components/fixed/ApplyFixedExpensesButton";
+import CategoryManager from "@/components/categories/CategoryManager";
 import Link from "next/link";
 import {
   getBudgetData,
@@ -30,6 +31,7 @@ const BUDGET_TABS = [
   { key: "budget", label: "予算" },
   { key: "goals", label: "目標" },
   { key: "fixed", label: "固定費" },
+  { key: "categories", label: "カテゴリ" },
 ];
 
 type Props = {
@@ -65,13 +67,14 @@ export default async function BudgetPage({ searchParams }: Props) {
   const isBudgetTab = tab === "budget";
   const isGoalsTab = tab === "goals";
   const isFixedTab = tab === "fixed";
+  const isCategoriesTab = tab === "categories";
 
   const [goalsWithProgress, allMonthlyItems, monthlySummary, monthlyTotalBudget, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
     (isBudgetTab || isGoalsTab) ? getGoalsWithProgress() : Promise.resolve([]),
     isBudgetTab ? getBudgetData(year, month) : Promise.resolve([]),
     isBudgetTab ? getMonthlySummary(year, month) : Promise.resolve({ expense: 0, income: 0, balance: 0 }),
     isBudgetTab ? getMonthlyTotalBudget(year, month) : Promise.resolve(0),
-    isGoalsTab ? getCategories() : Promise.resolve([]),
+    (isGoalsTab || isCategoriesTab) ? getCategories() : Promise.resolve([]),
     isFixedTab ? getFixedExpenses() : Promise.resolve([]),
     isFixedTab ? getFixedExpenseLogs() : Promise.resolve([]),
   ]);
@@ -221,7 +224,7 @@ export default async function BudgetPage({ searchParams }: Props) {
             </div>
           ) : (
             goalsWithProgress.map((goal) => (
-              <GoalCard key={goal.id} goal={goal} />
+              <GoalCard key={goal.id} goal={goal} categories={allCategories as Awaited<ReturnType<typeof getCategories>>} />
             ))
           )}
         </div>
@@ -328,6 +331,11 @@ export default async function BudgetPage({ searchParams }: Props) {
             </div>
           )}
         </div>
+      )}
+
+      {/* カテゴリタブ */}
+      {isCategoriesTab && (
+        <CategoryManager categories={allCategories as Awaited<ReturnType<typeof getCategories>>} />
       )}
     </div>
   );
