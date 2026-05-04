@@ -29,7 +29,6 @@ import { getWeeksOfMonth, getCurrentWeekStart } from "@/lib/dateUtils";
 const BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品", "その他"];
 const BUDGET_TABS = [
   { key: "budget", label: "予算" },
-  { key: "goals", label: "目標" },
   { key: "fixed", label: "固定費" },
   { key: "categories", label: "カテゴリ" },
 ];
@@ -40,11 +39,6 @@ type Props = {
 
 function fmt(n: number) {
   return `¥${Math.abs(n).toLocaleString("ja-JP")}`;
-}
-
-function formatDeadline(deadline: string): string {
-  const d = new Date(deadline);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月`;
 }
 
 export default async function BudgetPage({ searchParams }: Props) {
@@ -65,21 +59,19 @@ export default async function BudgetPage({ searchParams }: Props) {
   const weekEnd = weekRange?.end ?? weekStart;
 
   const isBudgetTab = tab === "budget";
-  const isGoalsTab = tab === "goals";
   const isFixedTab = tab === "fixed";
   const isCategoriesTab = tab === "categories";
 
   const [goalsWithProgress, allMonthlyItems, monthlySummary, monthlyTotalBudget, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
-    (isBudgetTab || isGoalsTab) ? getGoalsWithProgress() : Promise.resolve([]),
+    isBudgetTab ? getGoalsWithProgress() : Promise.resolve([]),
     isBudgetTab ? getBudgetData(year, month) : Promise.resolve([]),
     isBudgetTab ? getMonthlySummary(year, month) : Promise.resolve({ expense: 0, income: 0, balance: 0 }),
     isBudgetTab ? getMonthlyTotalBudget(year, month) : Promise.resolve(0),
-    (isGoalsTab || isCategoriesTab) ? getCategories() : Promise.resolve([]),
+    (isBudgetTab || isCategoriesTab) ? getCategories() : Promise.resolve([]),
     isFixedTab ? getFixedExpenses() : Promise.resolve([]),
     isFixedTab ? getFixedExpenseLogs() : Promise.resolve([]),
   ]);
 
-  const savingsGoals = goalsWithProgress.filter((g) => g.type === "savings");
   const monthlyItems = (allMonthlyItems as Awaited<ReturnType<typeof getBudgetData>>).filter((i) =>
     BUDGET_CATEGORIES.includes(i.category.name)
   );
@@ -113,11 +105,13 @@ export default async function BudgetPage({ searchParams }: Props) {
     .sort(([a], [b]) => b.localeCompare(a))
     .slice(0, 4);
 
+  const categories = allCategories as Awaited<ReturnType<typeof getCategories>>;
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">予算管理</h1>
-        {isGoalsTab && <GoalForm categories={allCategories as Awaited<ReturnType<typeof getCategories>>} />}
+        {isBudgetTab && <GoalForm categories={categories} />}
         {isFixedTab && (
           <Link href="/fixed/new" className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors">
             + 新規登録
@@ -130,53 +124,17 @@ export default async function BudgetPage({ searchParams }: Props) {
       {/* 予算タブ */}
       {isBudgetTab && (
         <div className="space-y-8">
-          {/* 貯金目標 */}
-          <section className="space-y-4">
-            <h2 className="text-base font-semibold text-gray-700">貯金目標</h2>
-            {savingsGoals.length === 0 ? (
+          {/* 目標 */}
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-gray-700">目標</h2>
+            {goalsWithProgress.length === 0 ? (
               <div className="border rounded-md p-4 text-sm text-gray-400 text-center">
-                貯金目標が設定されていません。
-                <Link href="/budget?tab=goals" className="ml-1 text-blue-500 hover:underline">目標タブで追加する</Link>
+                目標が設定されていません。右上の「目標を追加」から作成できます。
               </div>
             ) : (
-              <div className="space-y-3">
-                {savingsGoals.map((goal) => {
-                  const pct = Math.round(goal.progress * 100);
-                  const days = goal.deadline ? (() => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const d = new Date(goal.deadline);
-                    return Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                  })() : null;
-                  return (
-                    <div key={goal.id} className="border rounded-md p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-semibold text-gray-800">{goal.title}</p>
-                          {goal.deadline && <p className="text-xs text-gray-400">期限: {formatDeadline(goal.deadline)}</p>}
-                        </div>
-                        <div className="text-right text-sm">
-                          <p className="text-gray-500">目標額: <span className="font-medium text-gray-700 tabular-nums">{fmt(goal.target_amount)}</span></p>
-                          <p className="text-gray-500">累積収支: <span className="font-medium tabular-nums">{fmt(goal.currentAmount)}</span></p>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="w-full bg-gray-100 rounded-full h-2.5">
-                          <div className="h-2.5 rounded-full transition-all bg-blue-500" style={{ width: `${pct}%` }} />
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="font-medium text-blue-600">{pct}% 達成</span>
-                          {days !== null && (
-                            <span className={days < 0 ? "text-red-500" : days <= 30 ? "text-yellow-600" : "text-gray-400"}>
-                              {days < 0 ? `${Math.abs(days)}日超過` : `残り${days}日`}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              (goalsWithProgress as Awaited<ReturnType<typeof getGoalsWithProgress>>).map((goal) => (
+                <GoalCard key={goal.id} goal={goal} categories={categories} />
+              ))
             )}
           </section>
 
@@ -211,22 +169,6 @@ export default async function BudgetPage({ searchParams }: Props) {
               <WeeklyBudgetTable items={weeklyItems} weekStart={weekStart} />
             )}
           </section>
-        </div>
-      )}
-
-      {/* 目標タブ */}
-      {isGoalsTab && (
-        <div className="space-y-3">
-          {goalsWithProgress.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 text-sm space-y-1">
-              <p>目標がまだ設定されていません</p>
-              <p>「目標を追加」から最初の目標を作りましょう</p>
-            </div>
-          ) : (
-            goalsWithProgress.map((goal) => (
-              <GoalCard key={goal.id} goal={goal} categories={allCategories as Awaited<ReturnType<typeof getCategories>>} />
-            ))
-          )}
         </div>
       )}
 
@@ -335,7 +277,7 @@ export default async function BudgetPage({ searchParams }: Props) {
 
       {/* カテゴリタブ */}
       {isCategoriesTab && (
-        <CategoryManager categories={allCategories as Awaited<ReturnType<typeof getCategories>>} />
+        <CategoryManager categories={categories} />
       )}
     </div>
   );
