@@ -25,6 +25,7 @@ import {
 import { getWeeksOfMonth, getCurrentWeekStart } from "@/lib/dateUtils";
 
 const BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品", "その他"];
+const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
 const BUDGET_TABS = [
   { key: "budget", label: "予算" },
   { key: "fixed", label: "固定費" },
@@ -79,7 +80,7 @@ export default async function BudgetPage({ searchParams }: Props) {
       : [];
 
   const weeklyItems = (allWeeklyItems as Awaited<ReturnType<typeof getWeeklyBudgetData>>).filter(
-    (i) => BUDGET_CATEGORIES.includes(i.category.name)
+    (i) => WEEKLY_BUDGET_CATEGORIES.includes(i.category.name)
   );
   const weeklyActualTotal = weeklyItems.reduce((s: number, i: Awaited<ReturnType<typeof getWeeklyBudgetData>>[number]) => s + i.weeklyActual, 0);
   const totalWeeklyBudget = weeklyItems.reduce((s: number, i: Awaited<ReturnType<typeof getWeeklyBudgetData>>[number]) => s + i.weeklyBudget, 0);

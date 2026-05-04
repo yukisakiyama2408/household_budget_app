@@ -18,14 +18,14 @@ export default function BudgetTable({ items, year, month }: Props) {
 
   return (
     <div className="border rounded-md overflow-hidden">
-      <table className="w-full text-sm">
+      <table className="w-full text-xs sm:text-sm">
         <thead>
           <tr className="bg-gray-50 border-b">
-            <th className="px-4 py-2.5 text-left font-medium">カテゴリ</th>
-            <th className="px-4 py-2.5 text-right font-medium">予算</th>
-            <th className="px-4 py-2.5 text-right font-medium">実績</th>
-            <th className="px-4 py-2.5 text-right font-medium">残り / 超過</th>
-            <th className="px-4 py-2.5 text-left font-medium w-36">進捗</th>
+            <th className="px-1.5 sm:px-4 py-2 text-left font-medium">カテゴリ</th>
+            <th className="px-1.5 sm:px-4 py-2 text-right font-medium">予算</th>
+            <th className="px-1.5 sm:px-4 py-2 text-right font-medium">実績</th>
+            <th className="px-1.5 sm:px-4 py-2 text-right font-medium whitespace-nowrap">残り/超過</th>
+            <th className="px-1.5 sm:px-4 py-2 text-left font-medium w-24 hidden sm:table-cell">進捗</th>
           </tr>
         </thead>
         <tbody>
@@ -38,16 +38,16 @@ export default function BudgetTable({ items, year, month }: Props) {
 
             return (
               <tr key={item.category.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-2">
+                <td className="px-1.5 sm:px-4 py-2">
+                  <div className="flex items-center gap-1">
                     <span
-                      className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: item.category.color ?? "#B3B3B3" }}
                     />
-                    {item.category.name}
+                    <span className="whitespace-nowrap">{item.category.name}</span>
                   </div>
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-1.5 sm:px-4 py-2">
                   <BudgetRowForm
                     year={year}
                     month={month}
@@ -55,29 +55,18 @@ export default function BudgetTable({ items, year, month }: Props) {
                     currentAmount={item.budgetAmount}
                   />
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-red-600">
+                <td className="px-1.5 sm:px-4 py-2 text-right tabular-nums text-red-600 whitespace-nowrap">
                   {fmt(item.actualAmount)}
                 </td>
-                <td className={`px-4 py-2.5 text-right tabular-nums font-medium ${
-                  item.budgetAmount === 0
-                    ? "text-gray-400"
-                    : isOver
-                    ? "text-red-600"
-                    : "text-green-700"
+                <td className={`px-1.5 sm:px-4 py-2 text-right tabular-nums font-medium whitespace-nowrap ${
+                  item.budgetAmount === 0 ? "text-gray-400" : isOver ? "text-red-600" : "text-green-700"
                 }`}>
-                  {item.budgetAmount === 0
-                    ? "—"
-                    : isOver
-                    ? `-${fmt(Math.abs(remaining))}`
-                    : fmt(remaining)}
+                  {item.budgetAmount === 0 ? "—" : isOver ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-1.5 sm:px-4 py-2 hidden sm:table-cell">
                   {item.budgetAmount > 0 ? (
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${isOver ? "bg-red-500" : "bg-green-500"}`}
-                        style={{ width: `${ratio * 100}%` }}
-                      />
+                      <div className={`h-2 rounded-full transition-all ${isOver ? "bg-red-500" : "bg-green-500"}`} style={{ width: `${ratio * 100}%` }} />
                     </div>
                   ) : (
                     <span className="text-gray-300 text-xs">未設定</span>
@@ -88,16 +77,16 @@ export default function BudgetTable({ items, year, month }: Props) {
           })}
         </tbody>
         <tfoot>
-          <tr className="bg-gray-50 font-semibold text-sm">
-            <td className="px-4 py-2.5">合計</td>
-            <td className="px-4 py-2.5 text-right tabular-nums">{fmt(totalBudget)}</td>
-            <td className="px-4 py-2.5 text-right tabular-nums text-red-600">{fmt(totalActual)}</td>
-            <td className={`px-4 py-2.5 text-right tabular-nums ${
+          <tr className="bg-gray-50 font-semibold">
+            <td className="px-1.5 sm:px-4 py-2">合計</td>
+            <td className="px-1.5 sm:px-4 py-2 text-right tabular-nums whitespace-nowrap">{fmt(totalBudget)}</td>
+            <td className="px-1.5 sm:px-4 py-2 text-right tabular-nums text-red-600 whitespace-nowrap">{fmt(totalActual)}</td>
+            <td className={`px-1.5 sm:px-4 py-2 text-right tabular-nums whitespace-nowrap ${
               totalBudget === 0 ? "text-gray-400" : totalRemaining < 0 ? "text-red-600" : "text-green-700"
             }`}>
               {totalBudget === 0 ? "—" : totalRemaining < 0 ? `-${fmt(Math.abs(totalRemaining))}` : fmt(totalRemaining)}
             </td>
-            <td className="px-4 py-2.5" />
+            <td className="px-1.5 sm:px-4 py-2 hidden sm:table-cell" />
           </tr>
         </tfoot>
       </table>

@@ -7,7 +7,6 @@ function fmt(n: number) {
 
 export default function PaceCard({
   dayOfMonth,
-  daysInMonth,
   daysRemaining,
   totalExpense,
   totalBudget,
@@ -59,7 +58,7 @@ export default function PaceCard({
               <p className="text-right text-xs text-gray-400 mt-0.5">{Math.round(usageRatio * 100)}%</p>
             </div>
 
-            <div className={`flex items-center justify-between text-sm pt-0.5 border-t ${isProjectedOver ? "text-red-500" : "text-green-600"}`}>
+            <div className={`flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs sm:text-sm pt-0.5 border-t ${isProjectedOver ? "text-red-500" : "text-green-600"}`}>
               <span>月末予測: <span className="font-medium tabular-nums">{fmt(projectedTotal)}</span></span>
               <span className="font-medium tabular-nums">
                 {isProjectedOver

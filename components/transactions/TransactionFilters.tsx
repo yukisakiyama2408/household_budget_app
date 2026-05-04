@@ -33,10 +33,10 @@ export default function TransactionFilters({ categories }: Props) {
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
       <Input
         type="month"
-        className="w-40"
+        className="col-span-2 sm:w-40"
         value={month}
         onChange={(e) => {
           setMonth(e.target.value);
@@ -47,7 +47,7 @@ export default function TransactionFilters({ categories }: Props) {
         value={searchParams.get("type") ?? ""}
         onValueChange={(v) => update("type", v === "all" ? "" : (v ?? ""))}
       >
-        <SelectTrigger className="w-32">
+        <SelectTrigger className="sm:w-32">
           <SelectValue placeholder="収支" />
         </SelectTrigger>
         <SelectContent>
@@ -60,7 +60,7 @@ export default function TransactionFilters({ categories }: Props) {
         value={searchParams.get("category_id") ?? ""}
         onValueChange={(v) => update("category_id", v === "all" ? "" : (v ?? ""))}
       >
-        <SelectTrigger className="w-40">
+        <SelectTrigger className="sm:w-40">
           <SelectValue placeholder="カテゴリ" />
         </SelectTrigger>
         <SelectContent>
@@ -76,7 +76,7 @@ export default function TransactionFilters({ categories }: Props) {
         value={searchParams.get("pay_method") ?? ""}
         onValueChange={(v) => update("pay_method", v === "all" ? "" : (v ?? ""))}
       >
-        <SelectTrigger className="w-32">
+        <SelectTrigger className="sm:w-32">
           <SelectValue placeholder="支払方法" />
         </SelectTrigger>
         <SelectContent>

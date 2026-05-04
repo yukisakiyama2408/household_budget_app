@@ -18,15 +18,15 @@ export default function WeeklyBudgetTable({ items, weekStart }: Props) {
 
   return (
     <div className="border rounded-md overflow-hidden">
-      <table className="w-full text-sm">
+      <table className="w-full text-xs sm:text-sm">
         <thead>
           <tr className="bg-gray-50 border-b">
-            <th className="px-4 py-2.5 text-left font-medium">カテゴリ</th>
-            <th className="px-4 py-2.5 text-right font-medium">月次予算</th>
-            <th className="px-4 py-2.5 text-right font-medium">週予算</th>
-            <th className="px-4 py-2.5 text-right font-medium">今週実績</th>
-            <th className="px-4 py-2.5 text-right font-medium">残り / 超過</th>
-            <th className="px-4 py-2.5 text-left font-medium w-32">進捗</th>
+            <th className="px-1.5 sm:px-4 py-2 text-left font-medium">カテゴリ</th>
+            <th className="px-1.5 sm:px-4 py-2 text-right font-medium hidden sm:table-cell whitespace-nowrap">月次予算</th>
+            <th className="px-1.5 sm:px-4 py-2 text-right font-medium whitespace-nowrap">週予算</th>
+            <th className="px-1.5 sm:px-4 py-2 text-right font-medium whitespace-nowrap">今週実績</th>
+            <th className="px-1.5 sm:px-4 py-2 text-right font-medium whitespace-nowrap">残り / 超過</th>
+            <th className="px-1.5 sm:px-4 py-2 text-left font-medium w-24 hidden sm:table-cell">進捗</th>
           </tr>
         </thead>
         <tbody>
@@ -40,19 +40,19 @@ export default function WeeklyBudgetTable({ items, weekStart }: Props) {
 
             return (
               <tr key={item.category.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-2">
+                <td className="px-1.5 sm:px-4 py-2">
+                  <div className="flex items-center gap-1.5">
                     <span
-                      className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: item.category.color ?? "#B3B3B3" }}
                     />
-                    {item.category.name}
+                    <span className="whitespace-nowrap">{item.category.name}</span>
                   </div>
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-gray-400">
+                <td className="px-1.5 sm:px-4 py-2 text-right tabular-nums text-gray-400 whitespace-nowrap hidden sm:table-cell">
                   {item.monthlyBudget > 0 ? fmt(item.monthlyBudget) : "—"}
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-2 sm:px-4 py-2">
                   <WeeklyBudgetRowForm
                     weekStart={weekStart}
                     categoryId={item.category.id}
@@ -60,11 +60,11 @@ export default function WeeklyBudgetTable({ items, weekStart }: Props) {
                     derivedAmount={item.weeklyBudgetDerived}
                   />
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-red-600">
+                <td className="px-1.5 sm:px-4 py-2 text-right tabular-nums text-red-600 whitespace-nowrap">
                   {fmt(item.weeklyActual)}
                 </td>
                 <td
-                  className={`px-4 py-2.5 text-right tabular-nums font-medium ${
+                  className={`px-1.5 sm:px-4 py-2 text-right tabular-nums font-medium whitespace-nowrap ${
                     item.weeklyBudget === 0
                       ? "text-gray-400"
                       : isOver
@@ -78,7 +78,7 @@ export default function WeeklyBudgetTable({ items, weekStart }: Props) {
                     ? `-${fmt(Math.abs(remaining))}`
                     : fmt(remaining)}
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-1.5 sm:px-4 py-2 hidden sm:table-cell">
                   {item.weeklyBudget > 0 ? (
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
@@ -96,12 +96,12 @@ export default function WeeklyBudgetTable({ items, weekStart }: Props) {
         </tbody>
         <tfoot>
           <tr className="bg-gray-50 font-semibold text-sm">
-            <td className="px-4 py-2.5">合計</td>
-            <td className="px-4 py-2.5 text-right tabular-nums text-gray-400">{fmt(totalMonthly)}</td>
-            <td className="px-4 py-2.5" />
-            <td className="px-4 py-2.5 text-right tabular-nums text-red-600">{fmt(totalActual)}</td>
+            <td className="px-1.5 sm:px-4 py-2">合計</td>
+            <td className="px-1.5 sm:px-4 py-2 text-right tabular-nums text-gray-400 whitespace-nowrap hidden sm:table-cell">{fmt(totalMonthly)}</td>
+            <td className="px-1.5 sm:px-4 py-2" />
+            <td className="px-1.5 sm:px-4 py-2 text-right tabular-nums text-red-600 whitespace-nowrap">{fmt(totalActual)}</td>
             <td
-              className={`px-4 py-2.5 text-right tabular-nums ${
+              className={`px-1.5 sm:px-4 py-2 text-right tabular-nums whitespace-nowrap ${
                 totalWeekly === 0
                   ? "text-gray-400"
                   : totalRemaining < 0
@@ -115,7 +115,7 @@ export default function WeeklyBudgetTable({ items, weekStart }: Props) {
                 ? `-${fmt(Math.abs(totalRemaining))}`
                 : fmt(totalRemaining)}
             </td>
-            <td className="px-4 py-2.5" />
+            <td className="px-1.5 sm:px-4 py-2 hidden sm:table-cell" />
           </tr>
         </tfoot>
       </table>

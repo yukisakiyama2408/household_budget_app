@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import NewEntryButton from "@/components/NewEntryButton";
-import PaceCard from "@/components/dashboard/PaceCard";
-import WeeklyPaceCard from "@/components/dashboard/WeeklyPaceCard";
+import PaceTabsCard from "@/components/dashboard/PaceTabsCard";
 import GoalProgress from "@/components/home/GoalProgress";
-import CheckinView from "@/components/checkin/CheckinView";
-import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getCheckinForWeek, getGoalsWithProgress, getWeekSummaryForDates, getWeeklyTotalBudget } from "@/lib/data";
+import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getGoalsWithProgress, getWeeklyBudgetData } from "@/lib/data";
+
+const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
 
 function fmtDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -41,23 +41,19 @@ export default async function HomePage() {
   const month = now.getMonth() + 1;
 
   const currentWeek = getCurrentWeekBounds(now);
-  const prevWeekStart = new Date(currentWeek.start);
-  prevWeekStart.setDate(prevWeekStart.getDate() - 7);
-  const prevWeekEnd = new Date(currentWeek.end);
-  prevWeekEnd.setDate(prevWeekEnd.getDate() - 7);
-  const prevWeek = { start: fmtDate(prevWeekStart), end: fmtDate(prevWeekEnd) };
 
-  const [balance, summary, budgetItems, recentTx, checkedIn, goals, currentWeekData, prevWeekData, weeklyTotalBudget] = await Promise.all([
+  const [balance, summary, budgetItems, recentTx, goals, allWeeklyItems] = await Promise.all([
     getCurrentBalance(),
     getMonthlySummary(year, month),
     getBudgetData(year, month),
     getTransactions({ limit: 5 }),
-    getCheckinForWeek(currentWeek.start),
     getGoalsWithProgress(),
-    getWeekSummaryForDates(currentWeek.start, currentWeek.end),
-    getWeekSummaryForDates(prevWeek.start, prevWeek.end),
-    getWeeklyTotalBudget(currentWeek.start),
+    getWeeklyBudgetData(year, month, currentWeek.start, currentWeek.end),
   ]);
+
+  const weeklyItems = allWeeklyItems.filter((i) => WEEKLY_BUDGET_CATEGORIES.includes(i.category.name));
+  const weeklyBudget = weeklyItems.reduce((s, i) => s + i.weeklyBudget, 0);
+  const weeklyExpense = weeklyItems.reduce((s, i) => s + i.weeklyActual, 0);
 
   const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
 
@@ -116,21 +112,13 @@ export default async function HomePage() {
         </Card>
       </div>
 
-      {/* 週次チェックイン */}
-      <CheckinView
-        currentWeek={currentWeekData}
-        prevWeek={prevWeekData}
-        alreadyCheckedIn={checkedIn}
-        weekStart={currentWeek.start}
-      />
-
-      {/* ペース */}
-      <PaceCard {...pace} />
-      <WeeklyPaceCard
+      {/* ペース（月次 / 週次タブ） */}
+      <PaceTabsCard
+        pace={pace}
         weekLabel={currentWeek.label}
         weekStart={currentWeek.start}
-        weeklyBudget={weeklyTotalBudget}
-        weeklyExpense={currentWeekData.expense}
+        weeklyBudget={weeklyBudget}
+        weeklyExpense={weeklyExpense}
         dayOfWeek={dayOfWeek}
       />
 

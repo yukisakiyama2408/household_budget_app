@@ -33,11 +33,11 @@ export default function BudgetRowForm({ year, month, categoryId, currentAmount }
 
   if (!editing) {
     return (
-      <div className="flex items-center justify-end gap-2">
-        <span className="tabular-nums">{fmt(currentAmount)}</span>
+      <div className="flex items-center justify-end gap-1">
+        <span className="tabular-nums text-xs sm:text-sm">{fmt(currentAmount)}</span>
         <button
           onClick={() => setEditing(true)}
-          className="px-2 py-0.5 text-xs text-gray-500 border rounded hover:bg-gray-50 transition-colors"
+          className="px-1.5 sm:px-2 py-0.5 text-xs text-gray-500 border rounded hover:bg-gray-50 transition-colors"
         >
           編集
         </button>
@@ -46,13 +46,13 @@ export default function BudgetRowForm({ year, month, categoryId, currentAmount }
   }
 
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div className="flex items-center justify-end gap-0.5 sm:gap-1">
       <input
         type="number"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel(); }}
-        className="w-28 border rounded px-2 py-1 text-right text-sm tabular-nums"
+        className="w-16 sm:w-28 border rounded px-1 sm:px-2 py-1 text-right text-xs sm:text-sm tabular-nums"
         min={0}
         placeholder="0"
         autoFocus
@@ -61,14 +61,14 @@ export default function BudgetRowForm({ year, month, categoryId, currentAmount }
         type="button"
         onClick={handleSave}
         disabled={isPending}
-        className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+        className="px-1.5 sm:px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
       >
-        {isPending ? "…" : "保存"}
+        {isPending ? "…" : "✓"}
       </button>
       <button
         type="button"
         onClick={handleCancel}
-        className="px-2 py-1 text-xs text-gray-500 border rounded hover:bg-gray-50"
+        className="px-1.5 sm:px-2 py-1 text-xs text-gray-500 border rounded hover:bg-gray-50"
       >
         ✕
       </button>

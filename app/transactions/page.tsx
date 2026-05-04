@@ -82,8 +82,11 @@ export default async function TransactionsPage({ searchParams }: Props) {
                   const cat = t.categories as { name: string; color: string } | null;
                   return (
                     <tr key={t.id} className="border-b last:border-0 hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap">{t.date}</td>
-                      <td className="px-4 py-3">{t.content}</td>
+                      <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm">
+                        <span className="hidden sm:inline">{t.date}</span>
+                        <span className="sm:hidden">{t.date.slice(5).replace("-", "/")}</span>
+                      </td>
+                      <td className="px-3 py-3 max-w-[100px] sm:max-w-none truncate">{t.content}</td>
                       <td className="px-4 py-3 hidden sm:table-cell text-muted-foreground">
                         {t.store ?? "-"}
                       </td>
@@ -100,15 +103,15 @@ export default async function TransactionsPage({ searchParams }: Props) {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className={`px-4 py-3 text-right tabular-nums font-medium ${
+                      <td className={`px-3 py-3 text-right tabular-nums font-medium whitespace-nowrap ${
                         t.type === "income" ? "text-green-600" : "text-red-500"
                       }`}>
                         {t.type === "income" ? "+" : "-"}¥{t.amount.toLocaleString("ja-JP")}
                       </td>
-                      <td className="px-4 py-3 text-center text-muted-foreground hidden sm:table-cell">
+                      <td className="px-3 py-3 text-center text-muted-foreground hidden sm:table-cell">
                         {t.pay_method ?? "-"}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-3 py-3 text-right">
                         <Link
                           href={`/transactions/${t.id}/edit`}
                           className="text-xs text-blue-600 hover:underline"
