@@ -30,7 +30,7 @@ export default function CsvExport() {
             onClick={() => setPeriod(p.value)}
             className={`px-3 py-1.5 transition-colors ${
               period === p.value
-                ? "bg-gray-900 text-white"
+                ? "bg-indigo-600 text-white"
                 : "bg-white text-gray-600 hover:bg-gray-50"
             }`}
           >

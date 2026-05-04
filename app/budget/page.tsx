@@ -116,7 +116,7 @@ export default async function BudgetPage({ searchParams }: Props) {
         <h1 className="text-xl font-bold">予算管理</h1>
         {isGoalsTab && <GoalForm categories={allCategories as Awaited<ReturnType<typeof getCategories>>} />}
         {isFixedTab && (
-          <Link href="/fixed/new" className="px-3 py-1.5 text-sm bg-gray-900 text-white rounded hover:bg-gray-700 transition-colors">
+          <Link href="/fixed/new" className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors">
             + 新規登録
           </Link>
         )}

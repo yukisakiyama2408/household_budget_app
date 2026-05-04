@@ -190,7 +190,7 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
         />
         <label htmlFor="csv-upload" className="cursor-pointer">
           <p className="text-sm text-gray-500 mb-2">PayPayの利用明細CSVをアップロード</p>
-          <span className="px-4 py-2 bg-gray-900 text-white text-sm rounded hover:bg-gray-700 transition-colors">
+          <span className="px-4 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors">
             ファイルを選択
           </span>
         </label>
@@ -243,7 +243,7 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
             <button
               onClick={handleImport}
               disabled={isPending || filteredIndexedRows.length === 0}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded hover:bg-gray-700 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 transition-colors disabled:opacity-50"
             >
               {isPending ? "インポート中..." : `${filteredIndexedRows.length}件をインポート`}
             </button>

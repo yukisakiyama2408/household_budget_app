@@ -26,7 +26,7 @@ export default function GoalForm({ categories }: { categories: Category[] }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-700 transition-colors"
+        className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 transition-colors"
       >
         + 目標を追加
       </button>
@@ -60,7 +60,7 @@ export default function GoalForm({ categories }: { categories: Category[] }) {
                   onClick={() => setType(t)}
                   className={`flex-1 py-2 transition-colors ${
                     type === t
-                      ? "bg-gray-900 text-white"
+                      ? "bg-indigo-600 text-white"
                       : "bg-white text-gray-600 hover:bg-gray-50"
                   }`}
                 >
@@ -132,7 +132,7 @@ export default function GoalForm({ categories }: { categories: Category[] }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 py-2.5 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                className="flex-1 py-2.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors"
               >
                 {loading ? "保存中..." : "保存"}
               </button>

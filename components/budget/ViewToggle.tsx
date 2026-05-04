@@ -24,7 +24,7 @@ export default function ViewToggle({ view, year, month, weekStart }: Props) {
           key={v}
           onClick={() => switchTo(v)}
           className={`px-4 py-1.5 transition-colors ${
-            view === v ? "bg-gray-900 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+            view === v ? "bg-indigo-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
           }`}
         >
           {v === "monthly" ? "月次" : "週次"}
