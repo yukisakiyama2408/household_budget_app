@@ -15,8 +15,6 @@ import Link from "next/link";
 import {
   getBudgetData,
   getWeeklyBudgetData,
-  getMonthlyTotalBudget,
-  getWeeklyTotalBudget,
   getMonthlySummary,
   calcPace,
   getGoalsWithProgress,
@@ -62,11 +60,10 @@ export default async function BudgetPage({ searchParams }: Props) {
   const isFixedTab = tab === "fixed";
   const isCategoriesTab = tab === "categories";
 
-  const [goalsWithProgress, allMonthlyItems, monthlySummary, monthlyTotalBudget, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
+  const [goalsWithProgress, allMonthlyItems, monthlySummary, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
     isBudgetTab ? getGoalsWithProgress() : Promise.resolve([]),
     isBudgetTab ? getBudgetData(year, month) : Promise.resolve([]),
     isBudgetTab ? getMonthlySummary(year, month) : Promise.resolve({ expense: 0, income: 0, balance: 0 }),
-    isBudgetTab ? getMonthlyTotalBudget(year, month) : Promise.resolve(0),
     (isBudgetTab || isCategoriesTab) ? getCategories() : Promise.resolve([]),
     isFixedTab ? getFixedExpenses() : Promise.resolve([]),
     isFixedTab ? getFixedExpenseLogs() : Promise.resolve([]),
@@ -76,18 +73,16 @@ export default async function BudgetPage({ searchParams }: Props) {
     BUDGET_CATEGORIES.includes(i.category.name)
   );
 
-  const [allWeeklyItems, weeklyTotalBudget] =
+  const allWeeklyItems =
     isBudgetTab && view === "weekly"
-      ? await Promise.all([
-          getWeeklyBudgetData(year, month, weekStart, weekEnd),
-          getWeeklyTotalBudget(weekStart),
-        ])
-      : [[], 0];
+      ? await getWeeklyBudgetData(year, month, weekStart, weekEnd)
+      : [];
 
   const weeklyItems = (allWeeklyItems as Awaited<ReturnType<typeof getWeeklyBudgetData>>).filter(
     (i) => BUDGET_CATEGORIES.includes(i.category.name)
   );
   const weeklyActualTotal = weeklyItems.reduce((s: number, i: Awaited<ReturnType<typeof getWeeklyBudgetData>>[number]) => s + i.weeklyActual, 0);
+  const totalWeeklyBudget = weeklyItems.reduce((s: number, i: Awaited<ReturnType<typeof getWeeklyBudgetData>>[number]) => s + i.weeklyBudget, 0);
 
   const totalMonthlyBudget = monthlyItems.reduce((s: number, i: typeof monthlyItems[number]) => s + i.budgetAmount, 0);
   const totalMonthlyActual = monthlyItems.reduce((s: number, i: typeof monthlyItems[number]) => s + i.actualAmount, 0);
@@ -151,9 +146,9 @@ export default async function BudgetPage({ searchParams }: Props) {
               </div>
             )}
             {view === "monthly" ? (
-              <TotalBudgetCard type="monthly" year={year} month={month} budgetAmount={monthlyTotalBudget} actualAmount={(monthlySummary as { expense: number }).expense} />
+              <TotalBudgetCard type="monthly" year={year} month={month} budgetAmount={totalMonthlyBudget} actualAmount={(monthlySummary as { expense: number }).expense} />
             ) : (
-              <TotalBudgetCard type="weekly" weekStart={weekStart} weekLabel={weekRange?.label ?? ""} budgetAmount={weeklyTotalBudget} actualAmount={weeklyActualTotal} />
+              <TotalBudgetCard type="weekly" weekStart={weekStart} weekLabel={weekRange?.label ?? ""} budgetAmount={totalWeeklyBudget} actualAmount={weeklyActualTotal} />
             )}
             {view === "monthly" && <PaceCard {...pace} />}
             <div className="flex justify-end">

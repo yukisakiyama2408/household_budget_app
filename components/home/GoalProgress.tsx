@@ -15,7 +15,7 @@ export default function GoalProgress({ goals }: { goals: GoalWithProgress[] }) {
     <Card>
       <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-medium text-gray-500">目標の進捗</CardTitle>
-        <Link href="/goals" className="text-xs text-blue-600 hover:underline">
+        <Link href="/budget" className="text-xs text-blue-600 hover:underline">
           管理 →
         </Link>
       </CardHeader>

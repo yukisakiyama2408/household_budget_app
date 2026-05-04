@@ -2,9 +2,10 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import NewEntryButton from "@/components/NewEntryButton";
 import PaceCard from "@/components/dashboard/PaceCard";
+import WeeklyPaceCard from "@/components/dashboard/WeeklyPaceCard";
 import GoalProgress from "@/components/home/GoalProgress";
 import CheckinView from "@/components/checkin/CheckinView";
-import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getCheckinForWeek, getGoalsWithProgress, getWeekSummaryForDates } from "@/lib/data";
+import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getCheckinForWeek, getGoalsWithProgress, getWeekSummaryForDates, getWeeklyTotalBudget } from "@/lib/data";
 
 function fmtDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -46,7 +47,7 @@ export default async function HomePage() {
   prevWeekEnd.setDate(prevWeekEnd.getDate() - 7);
   const prevWeek = { start: fmtDate(prevWeekStart), end: fmtDate(prevWeekEnd) };
 
-  const [balance, summary, budgetItems, recentTx, checkedIn, goals, currentWeekData, prevWeekData] = await Promise.all([
+  const [balance, summary, budgetItems, recentTx, checkedIn, goals, currentWeekData, prevWeekData, weeklyTotalBudget] = await Promise.all([
     getCurrentBalance(),
     getMonthlySummary(year, month),
     getBudgetData(year, month),
@@ -55,7 +56,10 @@ export default async function HomePage() {
     getGoalsWithProgress(),
     getWeekSummaryForDates(currentWeek.start, currentWeek.end),
     getWeekSummaryForDates(prevWeek.start, prevWeek.end),
+    getWeeklyTotalBudget(currentWeek.start),
   ]);
+
+  const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
 
   const totalBudget = budgetItems.reduce((s, i) => s + i.budgetAmount, 0);
   const totalActual = budgetItems.reduce((s, i) => s + i.actualAmount, 0);
@@ -122,6 +126,13 @@ export default async function HomePage() {
 
       {/* ペース */}
       <PaceCard {...pace} />
+      <WeeklyPaceCard
+        weekLabel={currentWeek.label}
+        weekStart={currentWeek.start}
+        weeklyBudget={weeklyTotalBudget}
+        weeklyExpense={currentWeekData.expense}
+        dayOfWeek={dayOfWeek}
+      />
 
       {/* 目標進捗 */}
       <GoalProgress goals={goals} />
