@@ -4,16 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Papa from "papaparse";
 import { importTransactions, fetchTransactionsForDuplicateCheck } from "@/lib/actions";
 import type { Category } from "@/types/database";
-
-type ParsedRow = {
-  date: string;
-  content: string;
-  amount: number;
-  type: "income" | "expense";
-  category_id: number | null;
-  pay_method: "Cash" | "Credit" | null;
-  store: string | null;
-};
+import CsvRowCards, { type ParsedRow } from "./CsvRowCards";
 
 function detectColumn(headers: string[], candidates: string[]): string | null {
   for (const c of candidates) {
@@ -249,7 +240,19 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
             </button>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile: card slider */}
+          <div className="sm:hidden">
+            <CsvRowCards
+              filteredIndexedRows={filteredIndexedRows}
+              categories={categories}
+              updateRow={updateRow}
+              removeRow={removeRow}
+              getDuplicateLevel={getDuplicateLevel}
+            />
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b text-left text-gray-500">

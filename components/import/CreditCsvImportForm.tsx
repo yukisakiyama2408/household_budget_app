@@ -4,16 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Papa from "papaparse";
 import { importTransactions, fetchTransactionsForDuplicateCheck } from "@/lib/actions";
 import type { Category } from "@/types/database";
-
-type ParsedRow = {
-  date: string;
-  content: string;
-  amount: number;
-  type: "income" | "expense";
-  category_id: number | null;
-  pay_method: "Cash" | "Credit" | null;
-  store: string | null;
-};
+import CsvRowCards, { type ParsedRow } from "./CsvRowCards";
 
 function parseCreditDate(raw: string): string {
   const m = raw.match(/(\d{4})年(\d{2})月(\d{2})日/);
@@ -235,7 +226,19 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
             </button>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile: card slider */}
+          <div className="sm:hidden">
+            <CsvRowCards
+              filteredIndexedRows={filteredIndexedRows}
+              categories={categories}
+              updateRow={updateRow}
+              removeRow={removeRow}
+              getDuplicateLevel={getDuplicateLevel}
+            />
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b text-left text-gray-500">
