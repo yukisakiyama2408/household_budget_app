@@ -46,7 +46,7 @@ export default async function HomePage() {
     getCurrentBalance(),
     getMonthlySummary(year, month),
     getBudgetData(year, month),
-    getTransactions({ limit: 5 }),
+    getTransactions({ limit: 5, dateTo: fmtDate(now) }),
     getGoalsWithProgress(),
     getWeeklyBudgetData(year, month, currentWeek.start, currentWeek.end),
   ]);
