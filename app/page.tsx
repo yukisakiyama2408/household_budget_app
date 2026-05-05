@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import NewEntryButton from "@/components/NewEntryButton";
 import PaceTabsCard from "@/components/dashboard/PaceTabsCard";
 import GoalProgress from "@/components/home/GoalProgress";
-import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getGoalsWithProgress, getWeeklyBudgetData } from "@/lib/data";
+import { getCurrentBalance, getMonthlySummary, getBudgetData, getTransactions, calcPace, getGoalsWithProgress, getWeeklyBudgetData, hasMonthlyBudget, hasWeeklyBudget } from "@/lib/data";
+import BudgetAlertBanner from "@/components/home/BudgetAlertBanner";
 
 const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
 
@@ -42,13 +43,15 @@ export default async function HomePage() {
 
   const currentWeek = getCurrentWeekBounds(now);
 
-  const [balance, summary, budgetItems, recentTx, goals, allWeeklyItems] = await Promise.all([
+  const [balance, summary, budgetItems, recentTx, goals, allWeeklyItems, monthlyRegistered, weeklyRegistered] = await Promise.all([
     getCurrentBalance(),
     getMonthlySummary(year, month),
     getBudgetData(year, month),
     getTransactions({ limit: 5, dateTo: fmtDate(now) }),
     getGoalsWithProgress(),
     getWeeklyBudgetData(year, month, currentWeek.start, currentWeek.end),
+    hasMonthlyBudget(year, month),
+    hasWeeklyBudget(currentWeek.start),
   ]);
 
   const weeklyItems = allWeeklyItems.filter((i) => WEEKLY_BUDGET_CATEGORIES.includes(i.category.name));
@@ -75,6 +78,8 @@ export default async function HomePage() {
         <p className="text-sm text-gray-500">{year}年{month}月</p>
         <NewEntryButton />
       </div>
+
+      <BudgetAlertBanner monthlyMissing={!monthlyRegistered} weeklyMissing={!weeklyRegistered} />
 
       {/* 残高 + 今月収支 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

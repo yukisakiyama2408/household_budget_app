@@ -21,8 +21,10 @@ import {
   getCategories,
   getFixedExpenses,
   getFixedExpenseLogs,
+  hasMonthlyBudget,
+  hasWeeklyBudget,
 } from "@/lib/data";
-import { getWeeksOfMonth, getCurrentWeekStart } from "@/lib/dateUtils";
+import { getWeeksOfMonth, getCurrentWeekStart, getNextWeekStart, weekStartToLabel } from "@/lib/dateUtils";
 
 const BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品", "その他"];
 const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
@@ -49,10 +51,8 @@ export default async function BudgetPage({ searchParams }: Props) {
   const tab = params.tab ?? "budget";
 
   const weeks = getWeeksOfMonth(year, month);
-  const defaultWeekStart = (() => {
-    const cur = getCurrentWeekStart();
-    return weeks.find((w) => w.start === cur)?.start ?? weeks[0]?.start ?? cur;
-  })();
+  const currentWeekStart = getCurrentWeekStart();
+  const defaultWeekStart = weeks.find((w) => w.start === currentWeekStart)?.start ?? weeks[0]?.start ?? currentWeekStart;
   const weekStart = params.weekStart ?? defaultWeekStart;
   const weekRange = weeks.find((w) => w.start === weekStart) ?? weeks[0];
   const weekEnd = weekRange?.end ?? weekStart;
@@ -60,6 +60,17 @@ export default async function BudgetPage({ searchParams }: Props) {
   const isBudgetTab = tab === "budget";
   const isFixedTab = tab === "fixed";
   const isCategoriesTab = tab === "categories";
+
+  const currentWeekHasBudget = isBudgetTab ? await hasWeeklyBudget(currentWeekStart) : false;
+  const geminiWeekStart = currentWeekHasBudget ? getNextWeekStart() : currentWeekStart;
+  const geminiWeekLabel = weekStartToLabel(geminiWeekStart);
+
+  const nowYear = now.getFullYear();
+  const nowMonth = now.getMonth() + 1;
+  const currentMonthHasBudget = isBudgetTab ? await hasMonthlyBudget(nowYear, nowMonth) : false;
+  const geminiYear = currentMonthHasBudget ? (nowMonth === 12 ? nowYear + 1 : nowYear) : nowYear;
+  const geminiMonth = currentMonthHasBudget ? (nowMonth === 12 ? 1 : nowMonth + 1) : nowMonth;
+  const geminiMonthLabel = `${geminiYear}年${geminiMonth}月`;
 
   const [goalsWithProgress, allMonthlyItems, monthlySummary, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
     isBudgetTab ? getGoalsWithProgress() : Promise.resolve([]),
@@ -154,9 +165,9 @@ export default async function BudgetPage({ searchParams }: Props) {
             {view === "monthly" && <PaceCard {...pace} />}
             <div className="flex justify-end">
               {view === "monthly" ? (
-                <GeminiBudgetImport type="monthly" year={year} month={month} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
+                <GeminiBudgetImport type="monthly" year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
               ) : (
-                <GeminiBudgetImport type="weekly" weekStart={weekStart} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
+                <GeminiBudgetImport type="weekly" weekStart={geminiWeekStart} weekLabel={geminiWeekLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
               )}
             </div>
             {view === "monthly" ? (

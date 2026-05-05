@@ -14,12 +14,14 @@ type MonthlyProps = {
   type: "monthly";
   year: number;
   month: number;
+  monthLabel?: string;
   categories: CategoryEntry[];
 };
 
 type WeeklyProps = {
   type: "weekly";
   weekStart: string;
+  weekLabel?: string;
   categories: CategoryEntry[];
 };
 
@@ -111,7 +113,15 @@ export default function GeminiBudgetImport(props: Props) {
   return (
     <div className="border border-purple-200 rounded-md p-4 space-y-3 bg-purple-50">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-purple-800">Gemini出力を貼り付けて一括登録</p>
+        <div>
+          <p className="text-sm font-medium text-purple-800">Gemini出力を貼り付けて一括登録</p>
+          {props.type === "monthly" && props.monthLabel && (
+            <p className="text-xs text-purple-500 mt-0.5">{props.monthLabel}の予算として登録します</p>
+          )}
+          {props.type === "weekly" && props.weekLabel && (
+            <p className="text-xs text-purple-500 mt-0.5">{props.weekLabel}週の予算として登録します</p>
+          )}
+        </div>
         <button
           onClick={handleClose}
           className="text-gray-400 hover:text-gray-600 text-xl leading-none"

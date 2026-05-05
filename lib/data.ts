@@ -916,3 +916,26 @@ export async function getWeeklyTotalBudget(weekStart: string): Promise<number> {
   if (error && error.code !== "42P01") throw error;
   return (data as { amount: number } | null)?.amount ?? 0;
 }
+
+export async function hasMonthlyBudget(year: number, month: number): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("budgets")
+    .select("id")
+    .eq("year", year)
+    .eq("month", month)
+    .limit(1);
+  if (error) throw error;
+  return ((data ?? []) as unknown[]).length > 0;
+}
+
+export async function hasWeeklyBudget(weekStart: string): Promise<boolean> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from("weekly_budgets") as any)
+    .select("category_id")
+    .eq("week_start", weekStart)
+    .limit(1);
+  if (error && error.code !== "42P01") throw error;
+  return ((data ?? []) as unknown[]).length > 0;
+}

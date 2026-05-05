@@ -40,3 +40,25 @@ export function getCurrentWeekStart(): string {
   monday.setDate(now.getDate() + diff);
   return fmtDate(monday);
 }
+
+export function getNextWeekStart(): string {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? 1 : 8 - day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diff);
+  return fmtDate(monday);
+}
+
+export function weekStartToLabel(start: string): string {
+  const d = new Date(start + "T00:00:00");
+  const end = new Date(d);
+  end.setDate(d.getDate() + 6);
+  const sm = d.getMonth() + 1;
+  const sd = d.getDate();
+  const em = end.getMonth() + 1;
+  const ed = end.getDate();
+  return sm === em
+    ? `${sm}/${sd}-${ed}`
+    : `${sm}/${sd}-${em}/${ed}`;
+}
