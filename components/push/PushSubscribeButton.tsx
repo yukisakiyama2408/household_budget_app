@@ -44,9 +44,12 @@ export default function PushSubscribeButton() {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") return setState("denied");
 
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) throw new Error("NEXT_PUBLIC_VAPID_PUBLIC_KEY が未設定です。Vercel の環境変数を確認してください。");
+
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
       const res = await fetch("/api/push/subscribe", {
