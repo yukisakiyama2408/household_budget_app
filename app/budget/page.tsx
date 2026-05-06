@@ -6,7 +6,8 @@ import WeekSelector from "@/components/budget/WeekSelector";
 import TotalBudgetCard from "@/components/budget/TotalBudgetCard";
 import GeminiBudgetImport from "@/components/budget/GeminiBudgetImport";
 import BudgetTransactionList from "@/components/budget/BudgetTransactionList";
-import PaceCard from "@/components/dashboard/PaceCard";
+import SpendingTrendChart from "@/components/budget/SpendingTrendChart";
+import PaceCardWithChart from "@/components/budget/PaceCardWithChart";
 import PageTabs from "@/components/PageTabs";
 import GoalCard from "@/components/goals/GoalCard";
 import GoalForm from "@/components/goals/GoalForm";
@@ -110,6 +111,19 @@ export default async function BudgetPage({ searchParams }: Props) {
   const totalMonthlyActual = monthlyItems.reduce((s: number, i: typeof monthlyItems[number]) => s + i.actualAmount, 0);
   const pace = calcPace(year, month, totalMonthlyActual, totalMonthlyBudget);
 
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const monthStartStr = `${year}-${pad(month)}-01`;
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
+  const monthEndStr = `${year}-${pad(month)}-${pad(lastDayOfMonth)}`;
+
+  const dailySpending: Record<string, number> = {};
+  for (const t of periodTransactions) {
+    if (t.type === "expense") {
+      dailySpending[t.date] = (dailySpending[t.date] ?? 0) + t.amount;
+    }
+  }
+
   const activeFixed = (fixedExpenses as Awaited<ReturnType<typeof getFixedExpenses>>).filter((f) => f.is_active);
   const inactiveFixed = (fixedExpenses as Awaited<ReturnType<typeof getFixedExpenses>>).filter((f) => !f.is_active);
 
@@ -172,7 +186,27 @@ export default async function BudgetPage({ searchParams }: Props) {
             ) : (
               <TotalBudgetCard type="weekly" weekStart={weekStart} weekLabel={weekRange?.label ?? ""} budgetAmount={totalWeeklyBudget} actualAmount={weeklyActualTotal} />
             )}
-            {view === "monthly" && <PaceCard {...pace} />}
+            {view === "monthly" && (
+              <PaceCardWithChart
+                pace={pace}
+                dailySpending={dailySpending}
+                budget={totalMonthlyBudget}
+                startDate={monthStartStr}
+                endDate={monthEndStr}
+                today={todayStr}
+              />
+            )}
+            {view === "weekly" && (
+              <SpendingTrendChart
+                dailySpending={dailySpending}
+                budget={totalWeeklyBudget}
+                startDate={weekStart}
+                endDate={weekEnd}
+                today={todayStr}
+                view="weekly"
+                title="今週のペース"
+              />
+            )}
             <div className="flex justify-end">
               {view === "monthly" ? (
                 <GeminiBudgetImport type="monthly" year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
