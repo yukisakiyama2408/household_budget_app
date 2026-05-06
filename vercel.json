@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/apply-fixed",
       "schedule": "0 1 1 * *"
+    },
+    {
+      "path": "/api/cron/notify-budget",
+      "schedule": "0 0 * * *"
     }
   ]
 }
