@@ -637,7 +637,7 @@ export async function getMonthlySummary(year: number, month: number) {
   return { income, expense, balance: income - expense };
 }
 
-type TransactionWithCategory = Transaction & {
+export type TransactionWithCategory = Transaction & {
   categories: { name: string; color: string | null } | null;
 };
 

@@ -5,6 +5,7 @@ import ViewToggle from "@/components/budget/ViewToggle";
 import WeekSelector from "@/components/budget/WeekSelector";
 import TotalBudgetCard from "@/components/budget/TotalBudgetCard";
 import GeminiBudgetImport from "@/components/budget/GeminiBudgetImport";
+import BudgetTransactionList from "@/components/budget/BudgetTransactionList";
 import PaceCard from "@/components/dashboard/PaceCard";
 import PageTabs from "@/components/PageTabs";
 import GoalCard from "@/components/goals/GoalCard";
@@ -23,6 +24,7 @@ import {
   getFixedExpenseLogs,
   hasMonthlyBudget,
   hasWeeklyBudget,
+  getTransactions,
 } from "@/lib/data";
 import { getWeeksOfMonth, getCurrentWeekStart, getNextWeekStart, weekStartToLabel } from "@/lib/dateUtils";
 
@@ -89,6 +91,14 @@ export default async function BudgetPage({ searchParams }: Props) {
     isBudgetTab && view === "weekly"
       ? await getWeeklyBudgetData(year, month, weekStart, weekEnd)
       : [];
+
+  const periodTransactions = isBudgetTab
+    ? await getTransactions(
+        view === "weekly"
+          ? { dateFrom: weekStart, dateTo: weekEnd }
+          : { month: `${year}-${String(month).padStart(2, "0")}` }
+      )
+    : [];
 
   const weeklyItems = (allWeeklyItems as Awaited<ReturnType<typeof getWeeklyBudgetData>>).filter(
     (i) => WEEKLY_BUDGET_CATEGORIES.includes(i.category.name)
@@ -176,6 +186,12 @@ export default async function BudgetPage({ searchParams }: Props) {
               <WeeklyBudgetTable items={weeklyItems} weekStart={weekStart} />
             )}
           </section>
+
+          {/* 取引明細 */}
+          <BudgetTransactionList
+            transactions={periodTransactions}
+            title={view === "weekly" ? `取引明細（${weekRange?.label ?? ""}）` : `取引明細（${year}年${month}月）`}
+          />
         </div>
       )}
 
