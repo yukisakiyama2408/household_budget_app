@@ -76,10 +76,8 @@ export default async function HomePage() {
       actual: i.actualAmount,
     }));
 
-  const weeklyBudgetItems = allWeeklyItems.filter((i) => i.weeklyBudget > 0);
-  const weeklyTotalBudget = weeklyBudgetItems.reduce((s, i) => s + i.weeklyBudget, 0);
-  const weeklyTotalActual = weeklyBudgetItems.reduce((s, i) => s + i.weeklyActual, 0);
-  const weeklyTopCategories = weeklyBudgetItems
+  const weeklyTopCategories = [...weeklyItems]
+    .filter((i) => i.weeklyBudget > 0)
     .sort((a, b) => b.weeklyActual / b.weeklyBudget - a.weeklyActual / a.weeklyBudget)
     .slice(0, 3)
     .map((i) => ({
@@ -163,8 +161,8 @@ export default async function HomePage() {
         <BudgetCard
           title="今週の予算消化"
           subtitle={currentWeek.label}
-          totalBudget={weeklyTotalBudget}
-          totalActual={weeklyTotalActual}
+          totalBudget={weeklyBudget}
+          totalActual={weeklyExpense}
           topCategories={weeklyTopCategories}
           linkHref="/budget?view=weekly"
         />
