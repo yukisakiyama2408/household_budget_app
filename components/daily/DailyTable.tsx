@@ -13,15 +13,15 @@ export default function DailyTable({ data }: Props) {
   const {
     year, month, daysInMonth,
     totalIncome, totalCashExpense,
-    days, startBalance, creditSettlement,
+    days, startBalance, creditSettlement, settlementDay, settlementDate,
   } = data;
 
-  // 日ごとの残高を計算（収入 - Cash支出 - クレジット引き落とし(27日)）
+  // 日ごとの残高を計算（収入 - Cash支出 - クレジット引き落とし）
   const balances: number[] = [];
   let running = startBalance;
   for (let d = 1; d <= daysInMonth; d++) {
     const entry = days[d] ?? { income: 0, cashExpense: 0, creditExpense: 0 };
-    const settlement = d === 27 ? creditSettlement : 0;
+    const settlement = d === settlementDay ? creditSettlement : 0;
     running += entry.income - entry.cashExpense - settlement;
     balances.push(running);
   }
@@ -34,7 +34,7 @@ export default function DailyTable({ data }: Props) {
         {year}年{month}月
       </div>
       <div className="border border-t-0 rounded-b-md px-3 pt-2">
-        <CreditSettlementForm year={year} month={month} currentAmount={creditSettlement} />
+        <CreditSettlementForm year={year} month={month} currentAmount={creditSettlement} settlementDate={settlementDate} />
         <div className="overflow-x-auto">
           <table className="text-xs border-collapse min-w-full">
             <thead>
@@ -44,7 +44,7 @@ export default function DailyTable({ data }: Props) {
                   合計金額
                 </th>
                 {dayNumbers.map((d) => (
-                  <th key={d} className={`border px-1.5 py-1.5 text-right font-medium w-16 ${d === 27 && creditSettlement > 0 ? "bg-purple-50" : ""}`}>
+                  <th key={d} className={`border px-1.5 py-1.5 text-right font-medium w-16 ${d === settlementDay && creditSettlement > 0 ? "bg-purple-50" : ""}`}>
                     {d}日
                   </th>
                 ))}
@@ -81,10 +81,10 @@ export default function DailyTable({ data }: Props) {
                 </td>
                 {dayNumbers.map((d) => {
                   const v = days[d]?.cashExpense ?? 0;
-                  const s = d === 27 ? creditSettlement : 0;
+                  const s = d === settlementDay ? creditSettlement : 0;
                   const total = v + s;
                   return (
-                    <td key={d} className={`border px-1.5 py-1.5 text-right tabular-nums ${d === 27 && s > 0 ? "bg-purple-50" : ""}`}>
+                    <td key={d} className={`border px-1.5 py-1.5 text-right tabular-nums ${d === settlementDay && s > 0 ? "bg-purple-50" : ""}`}>
                       {total > 0
                         ? <span className="text-red-600">{fmt(total)}</span>
                         : <span className="text-gray-300">¥0</span>}
@@ -104,7 +104,7 @@ export default function DailyTable({ data }: Props) {
                 {dayNumbers.map((d, i) => {
                   const bal = balances[i];
                   return (
-                    <td key={d} className={`border px-1.5 py-1.5 text-right tabular-nums font-medium ${d === 27 && creditSettlement > 0 ? "bg-purple-50" : ""} ${bal >= 0 ? "text-gray-800" : "text-red-600"}`}>
+                    <td key={d} className={`border px-1.5 py-1.5 text-right tabular-nums font-medium ${d === settlementDay && creditSettlement > 0 ? "bg-purple-50" : ""} ${bal >= 0 ? "text-gray-800" : "text-red-600"}`}>
                       {fmt(bal)}
                     </td>
                   );

@@ -7,23 +7,32 @@ type Props = {
   year: number;
   month: number;
   currentAmount: number;
+  settlementDate: string | null;
 };
 
-export default function CreditSettlementForm({ year, month, currentAmount }: Props) {
+export default function CreditSettlementForm({ year, month, currentAmount, settlementDate }: Props) {
+  const defaultDate = settlementDate ?? `${year}-${String(month).padStart(2, "0")}-27`;
   const [value, setValue] = useState(String(currentAmount || ""));
+  const [date, setDate] = useState(defaultDate);
   const [isPending, startTransition] = useTransition();
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
     const amount = Number(value) || 0;
     startTransition(async () => {
-      await upsertCreditSettlement(year, month, amount);
+      await upsertCreditSettlement(year, month, amount, date);
     });
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2 text-xs mt-1 mb-3">
-      <span className="text-gray-500">クレジット引き落とし（27日）</span>
+      <span className="text-gray-500">クレジット引き落とし</span>
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        className="border rounded px-2 py-1 text-sm"
+      />
       <input
         type="number"
         value={value}

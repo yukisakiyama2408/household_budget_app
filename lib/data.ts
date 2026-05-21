@@ -73,6 +73,8 @@ export type MonthDailyData = {
   days: Record<number, DayEntry>;
   startBalance: number;
   creditSettlement: number;
+  settlementDay: number;
+  settlementDate: string | null;
 };
 
 const PAGE_SIZE = 1000;
@@ -135,8 +137,11 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
     .eq("year", year);
   if (setError) throw setError;
 
-  const settlementMap = new Map<number, number>(
-    ((settlementData ?? []) as CreditSettlement[]).map((s) => [s.month, s.amount])
+  const settlementMap = new Map<number, { amount: number; day: number; date: string }>(
+    ((settlementData ?? []) as CreditSettlement[]).map((s) => {
+      const day = parseInt(s.settlement_date.split("-")[2], 10);
+      return [s.month, { amount: s.amount, day, date: s.settlement_date }];
+    })
   );
 
   // 日付ごとに集計
@@ -159,7 +164,10 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
     const daysInMonth = new Date(year, m, 0).getDate();
     const monthStr = `${year}-${String(m).padStart(2, "0")}`;
     const startBalance = runningBalance;
-    const creditSettlement = settlementMap.get(m) ?? 0;
+    const settlementInfo = settlementMap.get(m);
+    const creditSettlement = settlementInfo?.amount ?? 0;
+    const settlementDay = settlementInfo?.day ?? 27;
+    const settlementDate = settlementInfo?.date ?? null;
 
     let totalIncome = 0;
     let totalCashExpense = 0;
@@ -174,12 +182,12 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
       totalCashExpense += entry.cashExpense;
       totalCreditExpense += entry.creditExpense;
       runningBalance += entry.income - entry.cashExpense;
-      if (d === 27) {
+      if (d === settlementDay) {
         runningBalance -= creditSettlement;
       }
     }
 
-    result.push({ year, month: m, daysInMonth, totalIncome, totalCashExpense, totalCreditExpense, days, startBalance, creditSettlement });
+    result.push({ year, month: m, daysInMonth, totalIncome, totalCashExpense, totalCreditExpense, days, startBalance, creditSettlement, settlementDay, settlementDate });
   }
 
   return result;
@@ -571,13 +579,10 @@ export async function getCurrentBalance(): Promise<number> {
   const supabase = await createClient();
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1;
 
   const [allRows, { data: settlements, error: setError }] = await Promise.all([
     fetchAllTransactions(supabase.from("transactions").select("*").lte("date", todayStr)),
-    supabase.from("credit_settlements").select("*")
-      .or(`year.lt.${currentYear},and(year.eq.${currentYear},month.lte.${currentMonth})`),
+    supabase.from("credit_settlements").select("*").lte("settlement_date", todayStr),
   ]);
   if (setError) throw setError;
 

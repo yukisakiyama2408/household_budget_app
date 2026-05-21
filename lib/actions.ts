@@ -140,12 +140,12 @@ export async function upsertWeeklyTotalBudget(weekStart: string, amount: number)
   revalidatePath("/budget");
 }
 
-export async function upsertCreditSettlement(year: number, month: number, amount: number) {
+export async function upsertCreditSettlement(year: number, month: number, amount: number, settlementDate: string) {
   const supabase = await createClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from("credit_settlements") as any)
-    .upsert({ year, month, amount }, { onConflict: "year,month" });
+    .upsert({ year, month, amount, settlement_date: settlementDate }, { onConflict: "year,month" });
 
   if (error) throw new Error(error.message);
 

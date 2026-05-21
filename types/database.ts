@@ -31,6 +31,7 @@ export type CreditSettlement = {
   year: number;
   month: number;
   amount: number;
+  settlement_date: string;
 };
 
 export type Budget = {
