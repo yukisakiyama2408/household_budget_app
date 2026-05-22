@@ -303,6 +303,40 @@ export async function fetchRecentTransactions(limit = 5, payMethod?: "Cash" | "C
   }));
 }
 
+export async function fetchCategoryByStores(
+  stores: string[]
+): Promise<Record<string, number | null>> {
+  if (stores.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("store, category_id")
+    .in("store", stores)
+    .not("category_id", "is", null);
+  if (error) throw new Error(error.message);
+
+  const countMap = new Map<string, Map<number, number>>();
+  for (const row of (data ?? []) as { store: string; category_id: number }[]) {
+    if (!row.store || row.category_id == null) continue;
+    const inner = countMap.get(row.store) ?? new Map<number, number>();
+    inner.set(row.category_id, (inner.get(row.category_id) ?? 0) + 1);
+    countMap.set(row.store, inner);
+  }
+
+  const result: Record<string, number | null> = {};
+  for (const store of stores) {
+    const inner = countMap.get(store);
+    if (!inner) { result[store] = null; continue; }
+    let best: number | null = null;
+    let max = 0;
+    for (const [catId, count] of inner) {
+      if (count > max) { max = count; best = catId; }
+    }
+    result[store] = best;
+  }
+  return result;
+}
+
 export async function applyFixedExpensesAction(
   year: number,
   month: number

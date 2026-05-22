@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Papa from "papaparse";
-import { importTransactions, fetchTransactionsForDuplicateCheck, fetchRecentTransactions, type RecentTransaction } from "@/lib/actions";
+import { importTransactions, fetchTransactionsForDuplicateCheck, fetchRecentTransactions, fetchCategoryByStores, type RecentTransaction } from "@/lib/actions";
 import type { Category } from "@/types/database";
 import CsvRowCards, { type ParsedRow } from "./CsvRowCards";
 
@@ -60,7 +60,7 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
       Papa.parse<Record<string, string>>(text, {
         header: true,
         skipEmptyLines: true,
-        complete: ({ data, meta }) => {
+        complete: async ({ data, meta }) => {
           if (!meta.fields || meta.fields.length === 0) {
             setError("CSVのヘッダーが読み取れませんでした。");
             return;
@@ -119,13 +119,19 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
             return;
           }
 
-          setRows(parsed);
-
+          const stores = [...new Set(parsed.map((r) => r.store).filter((s): s is string => s != null))];
           const minDate = parsed[0].date;
           const maxDate = parsed[parsed.length - 1].date;
-          fetchTransactionsForDuplicateCheck(minDate, maxDate)
-            .then(setExistingTx)
-            .catch(() => {});
+
+          const [categoryMap] = await Promise.all([
+            fetchCategoryByStores(stores),
+            fetchTransactionsForDuplicateCheck(minDate, maxDate).then(setExistingTx).catch(() => {}),
+          ]);
+
+          setRows(parsed.map((row) => ({
+            ...row,
+            category_id: row.store != null ? (categoryMap[row.store] ?? null) : null,
+          })));
         },
       });
     };
