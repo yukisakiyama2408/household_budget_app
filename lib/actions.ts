@@ -270,6 +270,39 @@ export async function importTransactions(
   return { imported };
 }
 
+export type RecentTransaction = {
+  id: number;
+  date: string;
+  content: string;
+  amount: number;
+  type: string;
+  category_name: string | null;
+  category_color: string | null;
+};
+
+export async function fetchRecentTransactions(limit = 5, payMethod?: "Cash" | "Credit"): Promise<RecentTransaction[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("transactions")
+    .select("id, date, content, amount, type, categories(name, color)")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(limit);
+  if (payMethod) query = query.eq("pay_method", payMethod);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((t) => ({
+    id: t.id,
+    date: t.date,
+    content: t.content,
+    amount: t.amount,
+    type: t.type,
+    category_name: t.categories?.name ?? null,
+    category_color: t.categories?.color ?? null,
+  }));
+}
+
 export async function applyFixedExpensesAction(
   year: number,
   month: number

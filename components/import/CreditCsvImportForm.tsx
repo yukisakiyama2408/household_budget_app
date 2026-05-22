@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Papa from "papaparse";
-import { importTransactions, fetchTransactionsForDuplicateCheck } from "@/lib/actions";
+import { importTransactions, fetchTransactionsForDuplicateCheck, fetchRecentTransactions, type RecentTransaction } from "@/lib/actions";
 import type { Category } from "@/types/database";
 import CsvRowCards, { type ParsedRow } from "./CsvRowCards";
 
@@ -26,6 +26,11 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<{ imported: number } | null>(null);
+  const [recentTx, setRecentTx] = useState<RecentTransaction[]>([]);
+
+  useEffect(() => {
+    fetchRecentTransactions(5, "Credit").then(setRecentTx).catch(() => {});
+  }, []);
 
   function getDuplicateLevel(row: ParsedRow): "high" | "low" | null {
     const matches = existingTx.filter(
@@ -146,6 +151,7 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
         if (inputRef.current && rows.length === importTargets.length) {
           inputRef.current.value = "";
         }
+        fetchRecentTransactions(5, "Credit").then(setRecentTx).catch(() => {});
       } catch (e) {
         setError(e instanceof Error ? e.message : "インポートに失敗しました");
       }
@@ -184,6 +190,53 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
         <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded p-3">
           {result.imported}件をインポートしました。
         </p>
+      )}
+
+      {recentTx.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-medium text-gray-600">最近の入力データ（直近{recentTx.length}件）</h2>
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50 text-left text-gray-500">
+                  <th className="px-3 py-2 font-medium whitespace-nowrap">日付</th>
+                  <th className="px-3 py-2 font-medium">内容</th>
+                  <th className="px-3 py-2 font-medium whitespace-nowrap">カテゴリ</th>
+                  <th className="px-3 py-2 font-medium whitespace-nowrap text-right">金額（円）</th>
+                  <th className="px-3 py-2 font-medium whitespace-nowrap">収支</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentTx.map((t) => (
+                  <tr key={t.id} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{t.date}</td>
+                    <td className="px-3 py-2">{t.content}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {t.category_name ? (
+                        <span
+                          className="inline-block px-2 py-0.5 rounded text-xs font-medium text-white"
+                          style={{ backgroundColor: t.category_color ?? "#B3B3B3" }}
+                        >
+                          {t.category_name}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">未分類</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium tabular-nums whitespace-nowrap">
+                      ¥{t.amount.toLocaleString("ja-JP")}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <span className={`text-xs font-medium ${t.type === "income" ? "text-blue-600" : "text-gray-600"}`}>
+                        {t.type === "income" ? "収入" : "支出"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {rows.length > 0 && (
