@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import InsightCards from "@/components/insights/InsightCards";
 import CsvExport from "@/components/insights/CsvExport";
-import GeminiPrompt from "@/components/insights/GeminiPrompt";
+import ChatGPTPrompt from "@/components/insights/ChatGPTPrompt";
 import { getBudgetData, getCategoryBreakdown } from "@/lib/data";
 
 export default async function InsightsPage() {
@@ -51,7 +51,7 @@ export default async function InsightsPage() {
 
       {/* Gemini プロンプト */}
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-gray-700">Gemini で分析する</h2>
+        <h2 className="text-base font-semibold text-gray-700">ChatGPT で分析する</h2>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-500">
@@ -59,7 +59,7 @@ export default async function InsightsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <GeminiPrompt />
+            <ChatGPTPrompt />
           </CardContent>
         </Card>
       </section>

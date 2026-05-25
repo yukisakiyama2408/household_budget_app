@@ -12,7 +12,7 @@ import TrendLineChart from "@/components/dashboard/TrendLineChart";
 import PageTabs from "@/components/PageTabs";
 import InsightCards from "@/components/insights/InsightCards";
 import CsvExport from "@/components/insights/CsvExport";
-import GeminiPrompt from "@/components/insights/GeminiPrompt";
+import ChatGPTPrompt from "@/components/insights/ChatGPTPrompt";
 import {
   getMonthlySummary,
   getCategoryBreakdown,
@@ -73,13 +73,13 @@ export default async function DashboardPage({ searchParams }: Props) {
           </Card>
         </section>
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-700">Gemini で分析する</h2>
+          <h2 className="text-base font-semibold text-gray-700">ChatGPT で分析する</h2>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">プロンプトテンプレート</CardTitle>
             </CardHeader>
             <CardContent>
-              <GeminiPrompt />
+              <ChatGPTPrompt />
             </CardContent>
           </Card>
         </section>
