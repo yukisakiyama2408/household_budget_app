@@ -305,34 +305,46 @@ export async function fetchRecentTransactions(limit = 5, payMethod?: "Cash" | "C
 
 export async function fetchCategoryByStores(
   stores: string[]
-): Promise<Record<string, number | null>> {
+): Promise<Record<string, { category_id: number | null; content: string | null }>> {
   if (stores.length === 0) return {};
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("transactions")
-    .select("store, category_id")
-    .in("store", stores)
-    .not("category_id", "is", null);
+    .select("store, category_id, content")
+    .in("store", stores);
   if (error) throw new Error(error.message);
 
-  const countMap = new Map<string, Map<number, number>>();
-  for (const row of (data ?? []) as { store: string; category_id: number }[]) {
-    if (!row.store || row.category_id == null) continue;
-    const inner = countMap.get(row.store) ?? new Map<number, number>();
-    inner.set(row.category_id, (inner.get(row.category_id) ?? 0) + 1);
-    countMap.set(row.store, inner);
+  const categoryCountMap = new Map<string, Map<number, number>>();
+  const contentCountMap = new Map<string, Map<string, number>>();
+  for (const row of (data ?? []) as { store: string; category_id: number | null; content: string }[]) {
+    if (!row.store) continue;
+    if (row.category_id != null) {
+      const inner = categoryCountMap.get(row.store) ?? new Map<number, number>();
+      inner.set(row.category_id, (inner.get(row.category_id) ?? 0) + 1);
+      categoryCountMap.set(row.store, inner);
+    }
+    if (row.content) {
+      const inner = contentCountMap.get(row.store) ?? new Map<string, number>();
+      inner.set(row.content, (inner.get(row.content) ?? 0) + 1);
+      contentCountMap.set(row.store, inner);
+    }
   }
 
-  const result: Record<string, number | null> = {};
+  const result: Record<string, { category_id: number | null; content: string | null }> = {};
   for (const store of stores) {
-    const inner = countMap.get(store);
-    if (!inner) { result[store] = null; continue; }
-    let best: number | null = null;
-    let max = 0;
-    for (const [catId, count] of inner) {
-      if (count > max) { max = count; best = catId; }
+    let bestCategory: number | null = null;
+    let maxCategory = 0;
+    for (const [catId, count] of (categoryCountMap.get(store) ?? [])) {
+      if (count > maxCategory) { maxCategory = count; bestCategory = catId; }
     }
-    result[store] = best;
+
+    let bestContent: string | null = null;
+    let maxContent = 0;
+    for (const [content, count] of (contentCountMap.get(store) ?? [])) {
+      if (count > maxContent) { maxContent = count; bestContent = content; }
+    }
+
+    result[store] = { category_id: bestCategory, content: bestContent };
   }
   return result;
 }

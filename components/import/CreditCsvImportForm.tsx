@@ -128,10 +128,14 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
             fetchTransactionsForDuplicateCheck(minDate, maxDate).then(setExistingTx).catch(() => {}),
           ]);
 
-          setRows(parsed.map((row) => ({
-            ...row,
-            category_id: row.store != null ? (categoryMap[row.store] ?? null) : null,
-          })));
+          setRows(parsed.map((row) => {
+            const defaults = row.store != null ? (categoryMap[row.store] ?? null) : null;
+            return {
+              ...row,
+              category_id: defaults?.category_id ?? null,
+              content: defaults?.content ?? row.content,
+            };
+          }));
         },
       });
     };
