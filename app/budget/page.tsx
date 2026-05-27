@@ -5,6 +5,7 @@ import ViewToggle from "@/components/budget/ViewToggle";
 import WeekSelector from "@/components/budget/WeekSelector";
 import TotalBudgetCard from "@/components/budget/TotalBudgetCard";
 import GeminiBudgetImport from "@/components/budget/GeminiBudgetImport";
+import CombinedBudgetImport from "@/components/budget/CombinedBudgetImport";
 import BudgetTransactionList from "@/components/budget/BudgetTransactionList";
 import SpendingTrendChart from "@/components/budget/SpendingTrendChart";
 import PaceCardWithChart from "@/components/budget/PaceCardWithChart";
@@ -209,7 +210,7 @@ export default async function BudgetPage({ searchParams }: Props) {
             )}
             <div className="flex justify-end">
               {view === "monthly" ? (
-                <GeminiBudgetImport type="monthly" year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
+                <CombinedBudgetImport year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
               ) : (
                 <GeminiBudgetImport type="weekly" weekStart={geminiWeekStart} weekLabel={geminiWeekLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
               )}

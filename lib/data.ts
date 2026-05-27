@@ -944,3 +944,4 @@ export async function hasWeeklyBudget(weekStart: string): Promise<boolean> {
   if (error && error.code !== "42P01") throw error;
   return ((data ?? []) as unknown[]).length > 0;
 }
+

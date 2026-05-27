@@ -7,6 +7,7 @@ import {
   getYearlyTrend,
   TransactionWithCategory,
 } from "@/lib/data";
+import { getWeeksOfMonth } from "@/lib/dateUtils";
 
 // ── ユーティリティ ───────────────────────────────────────
 
@@ -152,10 +153,11 @@ export async function GET(req: NextRequest) {
     trendBase.setDate(now.getDate() - 21);
     const trendStart = getWeekBounds(trendBase).dateFrom;
 
-    const [allTx, weeklyBudgetItems, goals] = await Promise.all([
+    const [allTx, weeklyBudgetItems, goals, monthlyBudgetItems] = await Promise.all([
       getTransactions({ dateFrom: trendStart, dateTo: thisWeek.dateTo }),
       getWeeklyBudgetData(y, m, thisWeek.dateFrom, thisWeek.dateTo),
       getGoalsWithProgress(),
+      getBudgetData(y, m),
     ]);
 
     const lastWeekTx = allTx.filter((t) => t.date >= lastWeek.dateFrom && t.date <= lastWeek.dateTo);
@@ -215,6 +217,33 @@ export async function GET(req: NextRequest) {
       const total = catTotals.reduce((s, v) => s + v, 0);
       lines.push([ws, ...catTotals, total].join(","));
     }
+
+    // 今月の月次予算と残予算
+    const thisMonthStart = `${y}-${pad(m)}-01`;
+    const thisMonthTx = allTx.filter((t) => t.date >= thisMonthStart);
+    const monthCatActualMap = new Map<string, number>();
+    let monthActualTotal = 0;
+    for (const t of thisMonthTx.filter((t) => t.type === "expense")) {
+      const name = t.categories?.name ?? "未分類";
+      monthCatActualMap.set(name, (monthCatActualMap.get(name) ?? 0) + t.amount);
+      monthActualTotal += t.amount;
+    }
+    lines.push("");
+    lines.push(`## 今月の月次予算と残予算 (${y}年${m}月)`);
+    lines.push("カテゴリ,月次予算,今月実績,残予算,消化率(%)");
+    let monthBudgetTotal = 0;
+    for (const item of monthlyBudgetItems) {
+      const actual = monthCatActualMap.get(item.category.name) ?? 0;
+      if (item.budgetAmount === 0 && actual === 0) continue;
+      const remaining = item.budgetAmount - actual;
+      const pct = item.budgetAmount > 0 ? Math.round((actual / item.budgetAmount) * 100) : "";
+      lines.push([escapeCsv(item.category.name), item.budgetAmount, actual, remaining, pct].join(","));
+      monthBudgetTotal += item.budgetAmount;
+    }
+    lines.push(
+      ["合計", monthBudgetTotal, monthActualTotal, monthBudgetTotal - monthActualTotal,
+        monthBudgetTotal > 0 ? Math.round((monthActualTotal / monthBudgetTotal) * 100) : ""].join(",")
+    );
 
     lines.push(...buildGoalSection(goals));
     return toCsvResponse(lines, `weekly-${thisWeek.dateFrom}`);
@@ -286,6 +315,25 @@ export async function GET(req: NextRequest) {
       const income = mTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
       const expense = mTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
       lines.push([`${yy}-${pad(mm)}`, income, expense, income - expense].join(","));
+    }
+
+    // 今月の週別実績
+    const currentMonthWeeks = getWeeksOfMonth(y, m);
+    const weekCatNames = Array.from(
+      new Set(thisMonthTx.filter((t) => t.type === "expense").map((t) => t.categories?.name ?? "未分類"))
+    );
+    if (weekCatNames.length > 0) {
+      lines.push("");
+      lines.push(`## 今月の週別実績 (${y}年${m}月)`);
+      lines.push(["週", ...weekCatNames.map(escapeCsv), "合計"].join(","));
+      for (const week of currentMonthWeeks) {
+        const weekTx = thisMonthTx.filter((t) => t.type === "expense" && t.date >= week.start && t.date <= week.end);
+        const catAmounts = weekCatNames.map((name) =>
+          weekTx.filter((t) => (t.categories?.name ?? "未分類") === name).reduce((s, t) => s + t.amount, 0)
+        );
+        const total = catAmounts.reduce((s, v) => s + v, 0);
+        lines.push([week.label, ...catAmounts, total].join(","));
+      }
     }
 
     lines.push(...buildGoalSection(goals));

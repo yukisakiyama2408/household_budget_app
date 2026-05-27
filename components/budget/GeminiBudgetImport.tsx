@@ -105,7 +105,7 @@ export default function GeminiBudgetImport(props: Props) {
         onClick={() => setOpen(true)}
         className="text-xs text-purple-600 hover:underline"
       >
-        Gemini出力から一括登録
+        ChatGPT出力から一括登録
       </button>
     );
   }
@@ -114,7 +114,7 @@ export default function GeminiBudgetImport(props: Props) {
     <div className="border border-purple-200 rounded-md p-4 space-y-3 bg-purple-50">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-purple-800">Gemini出力を貼り付けて一括登録</p>
+          <p className="text-sm font-medium text-purple-800">ChatGPT出力を貼り付けて一括登録</p>
           {props.type === "monthly" && props.monthLabel && (
             <p className="text-xs text-purple-500 mt-0.5">{props.monthLabel}の予算として登録します</p>
           )}
