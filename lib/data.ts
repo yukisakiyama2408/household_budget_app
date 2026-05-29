@@ -206,6 +206,8 @@ export type WeekData = {
   endDate: string;
   income: number;
   expense: number;
+  reimbursement: number;
+  effectiveExpense: number;
   categories: WeekCategoryData[];
 };
 
@@ -226,7 +228,7 @@ export async function getWeeklyData(year: number, month: number): Promise<WeekDa
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("transactions")
-    .select("date, amount, type, category_id, categories(name, color)")
+    .select("date, amount, type, category_id, categories(name, color, offset_category_id)")
     .gte("date", fmtDate(firstMonday))
     .lte("date", fmtDate(lastSunday));
   if (error) throw error;
@@ -235,7 +237,7 @@ export async function getWeeklyData(year: number, month: number): Promise<WeekDa
     amount: number;
     type: string;
     category_id: number | null;
-    categories: { name: string; color: string | null } | null;
+    categories: { name: string; color: string | null; offset_category_id: number | null } | null;
   }[];
 
   const weeks: WeekData[] = [];
@@ -259,6 +261,9 @@ export async function getWeeklyData(year: number, month: number): Promise<WeekDa
     const weekTx = rows.filter((t) => t.date >= wStartStr && t.date <= wEndStr);
     const income = weekTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const expense = weekTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+    const reimbursement = weekTx
+      .filter((t) => t.type === "income" && t.categories?.offset_category_id != null)
+      .reduce((s, t) => s + t.amount, 0);
 
     const catMap = new Map<string, WeekCategoryData>();
     for (const tx of weekTx.filter((t) => t.type === "expense")) {
@@ -268,9 +273,16 @@ export async function getWeeklyData(year: number, month: number): Promise<WeekDa
       const prev = catMap.get(key) ?? { id: tx.category_id, name, color, amount: 0 };
       catMap.set(key, { ...prev, amount: prev.amount + tx.amount });
     }
-    const categories = Array.from(catMap.values()).sort((a, b) => b.amount - a.amount);
+    for (const tx of weekTx.filter((t) => t.type === "income" && t.categories?.offset_category_id != null)) {
+      const key = String(tx.categories!.offset_category_id!);
+      const existing = catMap.get(key);
+      if (existing) {
+        catMap.set(key, { ...existing, amount: Math.max(0, existing.amount - tx.amount) });
+      }
+    }
+    const categories = Array.from(catMap.values()).filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount);
 
-    weeks.push({ label, startDate: wStartStr, endDate: wEndStr, income, expense, categories });
+    weeks.push({ label, startDate: wStartStr, endDate: wEndStr, income, expense, reimbursement, effectiveExpense: expense - reimbursement, categories });
     cursor.setDate(cursor.getDate() + 7);
   }
 
@@ -327,6 +339,8 @@ export type WeekSummaryData = {
   label: string;
   income: number;
   expense: number;
+  reimbursement: number;
+  effectiveExpense: number;
   categories: WeekCategoryData[];
 };
 
@@ -334,7 +348,7 @@ export async function getWeekSummaryForDates(startDate: string, endDate: string)
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("transactions")
-    .select("date, amount, type, category_id, categories(name, color)")
+    .select("date, amount, type, category_id, categories(name, color, offset_category_id)")
     .gte("date", startDate)
     .lte("date", endDate);
   if (error) throw error;
@@ -344,11 +358,14 @@ export async function getWeekSummaryForDates(startDate: string, endDate: string)
     amount: number;
     type: string;
     category_id: number | null;
-    categories: { name: string; color: string | null } | null;
+    categories: { name: string; color: string | null; offset_category_id: number | null } | null;
   }[];
 
   const income = rows.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = rows.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const reimbursement = rows
+    .filter((t) => t.type === "income" && t.categories?.offset_category_id != null)
+    .reduce((s, t) => s + t.amount, 0);
 
   const catMap = new Map<string, WeekCategoryData>();
   for (const tx of rows.filter((t) => t.type === "expense")) {
@@ -358,7 +375,14 @@ export async function getWeekSummaryForDates(startDate: string, endDate: string)
     const prev = catMap.get(key) ?? { id: tx.category_id, name, color, amount: 0 };
     catMap.set(key, { ...prev, amount: prev.amount + tx.amount });
   }
-  const categories = Array.from(catMap.values()).sort((a, b) => b.amount - a.amount);
+  for (const tx of rows.filter((t) => t.type === "income" && t.categories?.offset_category_id != null)) {
+    const key = String(tx.categories!.offset_category_id!);
+    const existing = catMap.get(key);
+    if (existing) {
+      catMap.set(key, { ...existing, amount: Math.max(0, existing.amount - tx.amount) });
+    }
+  }
+  const categories = Array.from(catMap.values()).filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount);
 
   const [, sm, sd] = startDate.split("-");
   const [, em, ed] = endDate.split("-");
@@ -367,7 +391,7 @@ export async function getWeekSummaryForDates(startDate: string, endDate: string)
       ? `${parseInt(sm)}/${parseInt(sd)}-${parseInt(ed)}`
       : `${parseInt(sm)}/${parseInt(sd)}-${parseInt(em)}/${parseInt(ed)}`;
 
-  return { startDate, endDate, label, income, expense, categories };
+  return { startDate, endDate, label, income, expense, reimbursement, effectiveExpense: expense - reimbursement, categories };
 }
 
 export async function getCheckinForWeek(weekStart: string): Promise<boolean> {
@@ -623,23 +647,22 @@ export async function getMonthlySummary(year: number, month: number) {
   const supabase = await createClient();
   const { start, end } = getMonthRange(year, month);
 
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .gte("date", start)
-    .lt("date", end);
+  const [{ data: txData, error: txError }, { data: reimData, error: reimError }] = await Promise.all([
+    supabase.from("transactions").select("type, amount").gte("date", start).lt("date", end),
+    supabase.from("transactions").select("amount, categories(offset_category_id)").eq("type", "income").gte("date", start).lt("date", end),
+  ]);
+  if (txError) throw txError;
+  if (reimError) throw reimError;
 
-  if (error) throw error;
+  const rows = (txData ?? []) as { type: string; amount: number }[];
+  const income = rows.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+  const expense = rows.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
 
-  const rows = (data ?? []) as Transaction[];
-  const income = rows
-    .filter((t) => t.type === "income")
+  const reimbursement = ((reimData ?? []) as { amount: number; categories: { offset_category_id: number | null } | null }[])
+    .filter((t) => t.categories?.offset_category_id != null)
     .reduce((sum, t) => sum + t.amount, 0);
-  const expense = rows
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
 
-  return { income, expense, balance: income - expense };
+  return { income, expense, reimbursement, effectiveExpense: expense - reimbursement, balance: income - expense };
 }
 
 export type TransactionWithCategory = Transaction & {
@@ -652,78 +675,95 @@ export async function getCategoryBreakdown(year: number, month: number) {
 
   const { data, error } = await supabase
     .from("transactions")
-    .select("*, categories(name, color)")
-    .eq("type", "expense")
+    .select("type, amount, category_id, categories(name, color, offset_category_id)")
     .gte("date", start)
     .lt("date", end);
 
   if (error) throw error;
 
-  const rows = (data ?? []) as TransactionWithCategory[];
-  const map = new Map<string, { amount: number; color: string }>();
+  type Row = { type: string; amount: number; category_id: number | null; categories: { name: string; color: string | null; offset_category_id: number | null } | null };
+  const rows = (data ?? []) as Row[];
 
-  for (const t of rows) {
+  const map = new Map<number | "none", { name: string; color: string; amount: number }>();
+
+  for (const t of rows.filter((r) => r.type === "expense")) {
+    const key = t.category_id ?? "none";
     const name = t.categories?.name ?? "その他";
     const color = t.categories?.color ?? "#B3B3B3";
-    const prev = map.get(name) ?? { amount: 0, color };
-    map.set(name, { amount: prev.amount + t.amount, color });
+    const prev = map.get(key) ?? { name, color, amount: 0 };
+    map.set(key, { ...prev, amount: prev.amount + t.amount });
   }
 
-  return Array.from(map.entries())
-    .map(([name, { amount, color }]) => ({ name, amount, color }))
+  for (const t of rows.filter((r) => r.type === "income" && r.categories?.offset_category_id != null)) {
+    const targetId = t.categories!.offset_category_id!;
+    const existing = map.get(targetId);
+    if (existing) {
+      map.set(targetId, { ...existing, amount: Math.max(0, existing.amount - t.amount) });
+    }
+  }
+
+  return Array.from(map.values())
+    .filter((v) => v.amount > 0)
     .sort((a, b) => b.amount - a.amount);
 }
 
 export async function getYearlyTrend(year: number) {
   const supabase = await createClient();
 
-  const rows = await fetchAllTransactions(
-    supabase
-      .from("transactions")
-      .select("*")
-      .gte("date", `${year}-01-01`)
-      .lt("date", `${year + 1}-01-01`)
-      .order("date", { ascending: true })
-  );
-  const map = new Map<string, { income: number; expense: number }>();
+  const [rows, { data: reimData, error: reimError }] = await Promise.all([
+    fetchAllTransactions(
+      supabase.from("transactions").select("date, type, amount").gte("date", `${year}-01-01`).lt("date", `${year + 1}-01-01`).order("date", { ascending: true })
+    ),
+    supabase.from("transactions").select("date, amount, categories(offset_category_id)").eq("type", "income").gte("date", `${year}-01-01`).lt("date", `${year + 1}-01-01`),
+  ]);
+  if (reimError) throw reimError;
 
-  // 1〜12月分を初期化（データなしの月も表示するため）
+  const map = new Map<string, { income: number; expense: number; reimbursement: number }>();
+
   for (let m = 1; m <= 12; m++) {
     const key = `${year}-${String(m).padStart(2, "0")}`;
-    map.set(key, { income: 0, expense: 0 });
+    map.set(key, { income: 0, expense: 0, reimbursement: 0 });
   }
 
   for (const t of rows) {
     const key = t.date.slice(0, 7);
-    const prev = map.get(key) ?? { income: 0, expense: 0 };
+    const prev = map.get(key) ?? { income: 0, expense: 0, reimbursement: 0 };
     if (t.type === "income") prev.income += t.amount;
     else prev.expense += t.amount;
     map.set(key, prev);
   }
 
+  for (const t of ((reimData ?? []) as { date: string; amount: number; categories: { offset_category_id: number | null } | null }[])) {
+    if (t.categories?.offset_category_id == null) continue;
+    const key = t.date.slice(0, 7);
+    const prev = map.get(key);
+    if (prev) prev.reimbursement += t.amount;
+  }
+
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, { income, expense }]) => ({ month, income, expense }));
+    .map(([month, { income, expense, reimbursement }]) => ({ month, income, expense, reimbursement, effectiveExpense: expense - reimbursement }));
 }
 
 export async function getYearlySummary(year: number) {
   const supabase = await createClient();
 
-  const rows = await fetchAllTransactions(
-    supabase
-      .from("transactions")
-      .select("*")
-      .gte("date", `${year}-01-01`)
-      .lt("date", `${year + 1}-01-01`)
-  );
-  const income = rows
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const expense = rows
-    .filter((t) => t.type === "expense")
+  const [rows, { data: reimData, error: reimError }] = await Promise.all([
+    fetchAllTransactions(
+      supabase.from("transactions").select("type, amount").gte("date", `${year}-01-01`).lt("date", `${year + 1}-01-01`)
+    ),
+    supabase.from("transactions").select("amount, categories(offset_category_id)").eq("type", "income").gte("date", `${year}-01-01`).lt("date", `${year + 1}-01-01`),
+  ]);
+  if (reimError) throw reimError;
+
+  const income = rows.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+  const expense = rows.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
+
+  const reimbursement = ((reimData ?? []) as { amount: number; categories: { offset_category_id: number | null } | null }[])
+    .filter((t) => t.categories?.offset_category_id != null)
     .reduce((sum, t) => sum + t.amount, 0);
 
-  return { income, expense, balance: income - expense };
+  return { income, expense, reimbursement, effectiveExpense: expense - reimbursement, balance: income - expense };
 }
 
 export type YearlyBudgetData = {
@@ -792,7 +832,7 @@ export async function getBudgetData(year: number, month: number): Promise<Budget
   ] = await Promise.all([
     supabase.from("categories").select("*").order("display_order", { ascending: true }),
     supabase.from("budgets").select("*").eq("year", year).eq("month", month),
-    supabase.from("transactions").select("*").eq("type", "expense").gte("date", start).lt("date", end),
+    supabase.from("transactions").select("type, amount, category_id, categories(offset_category_id)").gte("date", start).lt("date", end),
   ]);
 
   if (catError) throw catError;
@@ -801,14 +841,19 @@ export async function getBudgetData(year: number, month: number): Promise<Budget
 
   const categories = (categoryData ?? []) as Category[];
   const budgets = (budgetData ?? []) as Budget[];
-  const transactions = (txData ?? []) as Transaction[];
+
+  type TxRow = { type: string; amount: number; category_id: number | null; categories: { offset_category_id: number | null } | null };
+  const transactions = (txData ?? []) as TxRow[];
 
   const budgetMap = new Map(budgets.map((b) => [b.category_id, b.amount]));
 
   const actualMap = new Map<number, number>();
   for (const t of transactions) {
-    if (t.category_id != null) {
+    if (t.type === "expense" && t.category_id != null) {
       actualMap.set(t.category_id, (actualMap.get(t.category_id) ?? 0) + t.amount);
+    } else if (t.type === "income" && t.categories?.offset_category_id != null) {
+      const targetId = t.categories.offset_category_id;
+      actualMap.set(targetId, Math.max(0, (actualMap.get(targetId) ?? 0) - t.amount));
     }
   }
 

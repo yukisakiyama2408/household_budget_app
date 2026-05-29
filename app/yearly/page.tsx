@@ -26,6 +26,7 @@ export default async function YearlyPage({ searchParams }: Props) {
           income={summary.income}
           expense={summary.expense}
           balance={summary.balance}
+          reimbursement={summary.reimbursement}
         />
 
         <Card>
@@ -33,7 +34,7 @@ export default async function YearlyPage({ searchParams }: Props) {
             <CardTitle className="text-base">月次収支推移</CardTitle>
           </CardHeader>
           <CardContent>
-            <MonthlyBarChart data={trendData} />
+            <MonthlyBarChart data={trendData.map((d) => ({ month: d.month, income: d.income, expense: d.effectiveExpense }))} />
           </CardContent>
         </Card>
       </div>

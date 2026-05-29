@@ -89,6 +89,19 @@ export default function CategoryManager({ categories }: { categories: Category[]
   const [editTarget, setEditTarget] = useState<Category | null>(null);
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [modalType, setModalType] = useState<CategoryType>("expense");
+
+  const expenseCategories = categories.filter(c => c.type === "expense" || c.type === "both");
+
+  function openEdit(cat: Category) {
+    setModalType(cat.type);
+    setEditTarget(cat);
+  }
+
+  function openAdd() {
+    setModalType("expense");
+    setAdding(true);
+  }
 
   async function handleCreate(e: { preventDefault(): void; currentTarget: HTMLFormElement }) {
     e.preventDefault();
@@ -136,7 +149,8 @@ export default function CategoryManager({ categories }: { categories: Category[]
           <label className="text-xs font-medium text-gray-500">種別</label>
           <select
             name="type"
-            defaultValue={editTarget?.type ?? "expense"}
+            value={modalType}
+            onChange={(e) => setModalType(e.target.value as CategoryType)}
             className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
           >
             <option value="expense">支出</option>
@@ -144,6 +158,23 @@ export default function CategoryManager({ categories }: { categories: Category[]
             <option value="both">両方</option>
           </select>
         </div>
+
+        {modalType === "income" && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-gray-500">相殺する支出カテゴリ（任意）</label>
+            <select
+              name="offset_category_id"
+              defaultValue={editTarget?.offset_category_id ? String(editTarget.offset_category_id) : ""}
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            >
+              <option value="">なし</option>
+              {expenseCategories.map(c => (
+                <option key={c.id} value={String(c.id)}>{c.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400">設定すると、この収入が対象カテゴリの実質支出から差し引かれます</p>
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-gray-500">色</label>
@@ -176,7 +207,7 @@ export default function CategoryManager({ categories }: { categories: Category[]
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">{categories.length}件</p>
           <button
-            onClick={() => setAdding(true)}
+            onClick={openAdd}
             className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
           >
             + カテゴリを追加
@@ -195,7 +226,7 @@ export default function CategoryManager({ categories }: { categories: Category[]
                   <p className="text-lg font-bold text-gray-700">{TYPE_LABELS[type]}</p>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {items.map((cat) => (
-                      <CategoryCard key={cat.id} cat={cat} onEdit={setEditTarget} />
+                      <CategoryCard key={cat.id} cat={cat} onEdit={openEdit} />
                     ))}
                   </div>
                 </div>

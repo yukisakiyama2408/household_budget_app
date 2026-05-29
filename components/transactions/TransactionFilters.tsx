@@ -61,7 +61,11 @@ export default function TransactionFilters({ categories }: Props) {
         onValueChange={(v) => update("category_id", v === "all" ? "" : (v ?? ""))}
       >
         <SelectTrigger className="sm:w-40">
-          <SelectValue placeholder="カテゴリ" />
+          <SelectValue>
+            {(value: string) => value
+              ? categories.find((c) => String(c.id) === value)?.name
+              : <span className="text-muted-foreground">カテゴリ</span>}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">すべて</SelectItem>

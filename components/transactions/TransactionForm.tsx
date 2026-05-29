@@ -93,7 +93,11 @@ export default function TransactionForm({
           defaultValue={defaultValues?.category_id ? String(defaultValues.category_id) : ""}
         >
           <SelectTrigger>
-            <SelectValue placeholder="カテゴリを選択" />
+            <SelectValue>
+              {(value: string) => value
+                ? categories.find((c) => String(c.id) === value)?.name
+                : <span className="text-muted-foreground">カテゴリを選択</span>}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">なし</SelectItem>

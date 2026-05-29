@@ -8,6 +8,7 @@ export type Category = {
   type: CategoryType;
   color: string | null;
   display_order: number;
+  offset_category_id: number | null;
 };
 
 export type Transaction = {

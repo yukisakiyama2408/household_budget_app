@@ -4,13 +4,15 @@ type Props = {
   income: number;
   expense: number;
   balance: number;
+  reimbursement?: number;
 };
 
 function fmt(n: number) {
   return `¥${Math.abs(n).toLocaleString("ja-JP")}`;
 }
 
-export default function SummaryCards({ income, expense, balance }: Props) {
+export default function SummaryCards({ income, expense, balance, reimbursement = 0 }: Props) {
+  const displayExpense = expense - reimbursement;
   return (
     <div className="grid grid-cols-3 gap-2 sm:gap-4">
       <Card>
@@ -26,8 +28,11 @@ export default function SummaryCards({ income, expense, balance }: Props) {
         <CardContent className="p-3 pt-3">
           <p className="text-xs text-muted-foreground">支出</p>
           <p className="text-sm sm:text-xl font-bold text-red-500 tabular-nums mt-0.5">
-            {fmt(expense)}
+            {fmt(displayExpense)}
           </p>
+          {reimbursement > 0 && (
+            <p className="text-xs text-gray-400 mt-0.5">立替込 {fmt(expense)}</p>
+          )}
         </CardContent>
       </Card>
 

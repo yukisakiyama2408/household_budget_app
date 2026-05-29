@@ -119,7 +119,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           totalWeeks={weeklyData.length}
           label={week.label}
         />
-        <SummaryCards income={week.income} expense={week.expense} balance={bal} />
+        <SummaryCards income={week.income} expense={week.expense} balance={bal} reimbursement={week.reimbursement} />
         {week.categories.length > 0 && (
           <Card>
             <CardHeader>
@@ -136,7 +136,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 </thead>
                 <tbody>
                   {week.categories.map((c) => {
-                    const pct = week.expense > 0 ? ((c.amount / week.expense) * 100).toFixed(1) : "0.0";
+                    const pct = week.effectiveExpense > 0 ? ((c.amount / week.effectiveExpense) * 100).toFixed(1) : "0.0";
                     return (
                       <tr key={String(c.id ?? "none")} className="border-b last:border-0">
                         <td className="py-2.5">
@@ -159,7 +159,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                   <tr className="border-t font-semibold">
                     <td className="pt-2.5 text-gray-700">合計</td>
                     <td className="pt-2.5 text-right tabular-nums text-red-500">
-                      ¥{week.expense.toLocaleString("ja-JP")}
+                      ¥{week.effectiveExpense.toLocaleString("ja-JP")}
                     </td>
                     <td className="pt-2.5 text-right tabular-nums text-gray-400 text-xs">100%</td>
                   </tr>
@@ -183,13 +183,14 @@ export default async function DashboardPage({ searchParams }: Props) {
           income={summary.income}
           expense={summary.expense}
           balance={summary.balance}
+          reimbursement={summary.reimbursement}
         />
         <Card>
           <CardHeader>
             <CardTitle className="text-base">月次収支推移</CardTitle>
           </CardHeader>
           <CardContent>
-            <MonthlyBarChart data={trendData} />
+            <MonthlyBarChart data={trendData.map((d) => ({ month: d.month, income: d.income, expense: d.effectiveExpense }))} />
           </CardContent>
         </Card>
       </>
@@ -223,6 +224,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           income={summary.income}
           expense={summary.expense}
           balance={summary.balance}
+          reimbursement={summary.reimbursement}
         />
         <Card>
           <CardHeader>
