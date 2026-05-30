@@ -538,6 +538,7 @@ export async function getTransactions({
   type,
   categoryId,
   payMethod,
+  q,
   limit,
   dateFrom,
   dateTo,
@@ -546,6 +547,7 @@ export async function getTransactions({
   type?: string;
   categoryId?: string;
   payMethod?: string;
+  q?: string;
   limit?: number;
   dateFrom?: string;
   dateTo?: string;
@@ -577,6 +579,10 @@ export async function getTransactions({
   }
   if (payMethod && (payMethod === "Cash" || payMethod === "Credit")) {
     query = query.eq("pay_method", payMethod);
+  }
+  const search = q?.trim().replaceAll(",", " ");
+  if (search) {
+    query = query.or(`content.ilike.%${search}%,store.ilike.%${search}%`);
   }
   if (limit) {
     query = query.limit(limit);
@@ -989,4 +995,3 @@ export async function hasWeeklyBudget(weekStart: string): Promise<boolean> {
   if (error && error.code !== "42P01") throw error;
   return ((data ?? []) as unknown[]).length > 0;
 }
-
