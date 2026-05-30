@@ -9,6 +9,7 @@ import CombinedBudgetImport from "@/components/budget/CombinedBudgetImport";
 import BudgetTransactionList from "@/components/budget/BudgetTransactionList";
 import SpendingTrendChart from "@/components/budget/SpendingTrendChart";
 import PaceCardWithChart from "@/components/budget/PaceCardWithChart";
+import BudgetReviewTools from "@/components/budget/BudgetReviewTools";
 import PageTabs from "@/components/PageTabs";
 import GoalCard from "@/components/goals/GoalCard";
 import GoalForm from "@/components/goals/GoalForm";
@@ -208,6 +209,7 @@ export default async function BudgetPage({ searchParams }: Props) {
                 title="今週のペース"
               />
             )}
+            <BudgetReviewTools view={view} />
             <div className="flex justify-end">
               {view === "monthly" ? (
                 <CombinedBudgetImport year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type CsvPeriod = "weekly" | "monthly" | "3months";
 
-const TEMPLATES = [
+export const TEMPLATES = [
   {
     id: "monthly",
     label: "月次分析",

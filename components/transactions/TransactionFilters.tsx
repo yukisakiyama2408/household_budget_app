@@ -35,6 +35,10 @@ export default function TransactionFilters({ categories, defaultMonth = "", cate
     router.push(`/transactions?${params.toString()}`);
   }
 
+  function resetFilters() {
+    router.push("/transactions");
+  }
+
   function handleSearch(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -48,23 +52,58 @@ export default function TransactionFilters({ categories, defaultMonth = "", cate
   const selectedPayMethod = searchParams.get("pay_method") ?? "";
   const selectedCategoryId = searchParams.get("category_id") ?? "";
   const maxCategoryTotal = Math.max(...categoryTotals.map((c) => c.amount), 1);
+  const hasActiveFilters =
+    currentQ ||
+    selectedType ||
+    selectedPayMethod ||
+    selectedCategoryId ||
+    monthParam === "all" ||
+    (monthParam && monthParam !== defaultMonth);
 
   return (
     <aside className="rounded-lg border bg-white p-3 sm:p-4 lg:sticky lg:top-20">
-      <h2 className="mb-3 text-sm font-bold text-gray-900">絞り込み</h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-gray-900">絞り込み</h2>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="text-[11px] font-bold text-gray-500 hover:text-gray-900"
+          >
+            条件リセット
+          </button>
+        )}
+      </div>
 
       <form onSubmit={handleSearch} className="mb-3">
         <label className="mb-1.5 block text-[11px] font-bold text-gray-500">検索</label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            key={currentQ}
-            name="q"
-            defaultValue={currentQ}
-            placeholder="内容・店舗で検索"
-            className="h-10 pl-9 text-sm"
-          />
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-1.5">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              key={currentQ}
+              name="q"
+              defaultValue={currentQ}
+              placeholder="内容・店舗で検索"
+              className="h-10 pl-9 text-sm"
+            />
+          </div>
+          <button
+            type="submit"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-3 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50"
+          >
+            検索
+          </button>
         </div>
+        {currentQ && (
+          <button
+            type="button"
+            onClick={() => update("q", "")}
+            className="mt-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
+          >
+            検索を解除
+          </button>
+        )}
       </form>
 
       <div className="mb-3">
@@ -163,8 +202,17 @@ export default function TransactionFilters({ categories, defaultMonth = "", cate
               <button
                 key={category.id}
                 type="button"
-                onClick={() => update("category_id", String(category.id))}
-                className="grid w-full grid-cols-[10px_1fr_auto] items-center gap-2 text-left text-xs text-gray-500"
+                onClick={() =>
+                  update(
+                    "category_id",
+                    selectedCategoryId === String(category.id) ? "" : String(category.id)
+                  )
+                }
+                className={`grid w-full grid-cols-[10px_1fr_auto] items-center gap-2 rounded-md px-1 py-0.5 text-left text-xs transition-colors ${
+                  selectedCategoryId === String(category.id)
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-gray-500 hover:bg-gray-50"
+                }`}
               >
                 <span
                   className="h-2 w-2 rounded-full"
