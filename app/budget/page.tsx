@@ -7,8 +7,6 @@ import TotalBudgetCard from "@/components/budget/TotalBudgetCard";
 import GeminiBudgetImport from "@/components/budget/GeminiBudgetImport";
 import CombinedBudgetImport from "@/components/budget/CombinedBudgetImport";
 import BudgetTransactionList from "@/components/budget/BudgetTransactionList";
-import SpendingTrendChart from "@/components/budget/SpendingTrendChart";
-import PaceCardWithChart from "@/components/budget/PaceCardWithChart";
 import BudgetReviewTools from "@/components/budget/BudgetReviewTools";
 import PageTabs from "@/components/PageTabs";
 import GoalCard from "@/components/goals/GoalCard";
@@ -20,7 +18,6 @@ import {
   getBudgetData,
   getWeeklyBudgetData,
   getMonthlySummary,
-  calcPace,
   getGoalsWithProgress,
   getCategories,
   getFixedExpenses,
@@ -111,20 +108,6 @@ export default async function BudgetPage({ searchParams }: Props) {
 
   const totalMonthlyBudget = monthlyItems.reduce((s: number, i: typeof monthlyItems[number]) => s + i.budgetAmount, 0);
   const totalMonthlyActual = monthlyItems.reduce((s: number, i: typeof monthlyItems[number]) => s + i.actualAmount, 0);
-  const pace = calcPace(year, month, totalMonthlyActual, totalMonthlyBudget);
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  const monthStartStr = `${year}-${pad(month)}-01`;
-  const lastDayOfMonth = new Date(year, month, 0).getDate();
-  const monthEndStr = `${year}-${pad(month)}-${pad(lastDayOfMonth)}`;
-
-  const dailySpending: Record<string, number> = {};
-  for (const t of periodTransactions) {
-    if (t.type === "expense") {
-      dailySpending[t.date] = (dailySpending[t.date] ?? 0) + t.amount;
-    }
-  }
 
   const activeFixed = (fixedExpenses as Awaited<ReturnType<typeof getFixedExpenses>>).filter((f) => f.is_active);
   const inactiveFixed = (fixedExpenses as Awaited<ReturnType<typeof getFixedExpenses>>).filter((f) => !f.is_active);
@@ -141,7 +124,7 @@ export default async function BudgetPage({ searchParams }: Props) {
   const categories = allCategories as Awaited<ReturnType<typeof getCategories>>;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">予算管理</h1>
         {isBudgetTab && <GoalForm categories={categories} />}
@@ -156,29 +139,22 @@ export default async function BudgetPage({ searchParams }: Props) {
 
       {/* 予算タブ */}
       {isBudgetTab && (
-        <div className="space-y-8">
-          {/* 目標 */}
-          <section className="space-y-3">
-            <h2 className="text-base font-semibold text-gray-700">目標</h2>
-            {goalsWithProgress.length === 0 ? (
-              <div className="border rounded-md p-4 text-sm text-gray-400 text-center">
-                目標が設定されていません。右上の「目標を追加」から作成できます。
-              </div>
-            ) : (
-              (goalsWithProgress as Awaited<ReturnType<typeof getGoalsWithProgress>>).map((goal) => (
-                <GoalCard key={goal.id} goal={goal} categories={categories} />
-              ))
-            )}
-          </section>
-
-          {/* 月次 / 週次予算 */}
+        <div className="space-y-6">
           <section className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <ViewToggle view={view} year={year} month={month} weekStart={weekStart} />
-              <MonthSelector year={year} month={month} extraParams={view === "weekly" ? `view=weekly` : undefined} />
+            <div className="flex flex-col gap-3 rounded-lg border bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">予算を調整</h2>
+                <p className="mt-1 text-xs text-gray-500">
+                  期間を選び、予算と実績の差分を確認してから予算を更新します。
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:items-end">
+                <ViewToggle view={view} year={year} month={month} weekStart={weekStart} />
+                <MonthSelector year={year} month={month} extraParams={view === "weekly" ? `view=weekly` : undefined} />
+              </div>
             </div>
             {view === "weekly" && (
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-gray-400">週予算 = 月次予算 ÷ {weeks.length}週（未登録時）</p>
                 <WeekSelector year={year} month={month} weekStart={weekStart} />
               </div>
@@ -188,34 +164,35 @@ export default async function BudgetPage({ searchParams }: Props) {
             ) : (
               <TotalBudgetCard type="weekly" weekStart={weekStart} weekLabel={weekRange?.label ?? ""} budgetAmount={totalWeeklyBudget} actualAmount={weeklyActualTotal} />
             )}
-            {view === "monthly" && (
-              <PaceCardWithChart
-                pace={pace}
-                dailySpending={dailySpending}
-                budget={totalMonthlyBudget}
-                startDate={monthStartStr}
-                endDate={monthEndStr}
-                today={todayStr}
-              />
-            )}
-            {view === "weekly" && (
-              <SpendingTrendChart
-                dailySpending={dailySpending}
-                budget={totalWeeklyBudget}
-                startDate={weekStart}
-                endDate={weekEnd}
-                today={todayStr}
-                view="weekly"
-                title="今週のペース"
-              />
-            )}
+          </section>
+
+          <section className="space-y-3">
             <BudgetReviewTools view={view} />
-            <div className="flex justify-end">
+            <div className="rounded-lg border bg-white p-4">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900">AI出力を反映</h2>
+                  <p className="mt-1 text-xs text-gray-500">
+                    コピーしたプロンプトの回答を貼り付けて、予算表へ一括登録します。
+                  </p>
+                </div>
+              </div>
               {view === "monthly" ? (
                 <CombinedBudgetImport year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
               ) : (
                 <GeminiBudgetImport type="weekly" weekStart={geminiWeekStart} weekLabel={geminiWeekLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
               )}
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">
+                {view === "monthly" ? "月次予算表" : "週次予算表"}
+              </h2>
+              <p className="mt-1 text-xs text-gray-500">
+                カテゴリごとの予算を直接編集できます。
+              </p>
             </div>
             {view === "monthly" ? (
               <BudgetTable items={monthlyItems} year={year} month={month} />
@@ -229,6 +206,20 @@ export default async function BudgetPage({ searchParams }: Props) {
             transactions={periodTransactions}
             title={view === "weekly" ? `取引明細（${weekRange?.label ?? ""}）` : `取引明細（${year}年${month}月）`}
           />
+
+          {/* 目標 */}
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-gray-700">目標</h2>
+            {goalsWithProgress.length === 0 ? (
+              <div className="border rounded-md p-4 text-sm text-gray-400 text-center">
+                目標が設定されていません。右上の「目標を追加」から作成できます。
+              </div>
+            ) : (
+              (goalsWithProgress as Awaited<ReturnType<typeof getGoalsWithProgress>>).map((goal) => (
+                <GoalCard key={goal.id} goal={goal} categories={categories} />
+              ))
+            )}
+          </section>
         </div>
       )}
 

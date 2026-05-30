@@ -157,11 +157,19 @@ CSVの末尾に「# 貯金目標の進捗」セクションが含まれている
   },
 ] as const;
 
-export default function ChatGPTPrompt() {
-  const [selected, setSelected] = useState<string>(TEMPLATES[0].id);
+type Props = {
+  mode?: "analysis" | "all";
+};
+
+const BUDGET_TEMPLATE_IDS = new Set(["next_week_budget", "next_month_budget"]);
+
+export default function ChatGPTPrompt({ mode = "analysis" }: Props) {
+  const visibleTemplates =
+    mode === "all" ? TEMPLATES : TEMPLATES.filter((t) => !BUDGET_TEMPLATE_IDS.has(t.id));
+  const [selected, setSelected] = useState<string>(visibleTemplates[0].id);
   const [copied, setCopied] = useState(false);
 
-  const template = TEMPLATES.find((t) => t.id === selected)!;
+  const template = visibleTemplates.find((t) => t.id === selected) ?? visibleTemplates[0];
 
   async function handleCopy() {
     await navigator.clipboard.writeText(template.text);
@@ -176,7 +184,7 @@ export default function ChatGPTPrompt() {
   return (
     <div className="space-y-3">
       <div className="flex gap-2 flex-wrap">
-        {TEMPLATES.map((t) => (
+        {visibleTemplates.map((t) => (
           <button
             key={t.id}
             onClick={() => setSelected(t.id)}

@@ -103,7 +103,7 @@ export default function GeminiBudgetImport(props: Props) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-purple-600 hover:underline"
+        className="inline-flex h-9 items-center rounded-md bg-purple-600 px-3 text-xs font-bold text-white transition-colors hover:bg-purple-700"
       >
         ChatGPT出力から一括登録
       </button>

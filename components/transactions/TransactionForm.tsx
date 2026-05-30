@@ -21,6 +21,11 @@ type Props = {
   onDelete?: () => void;
 };
 
+function getLocalDateValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
 export default function TransactionForm({
   categories,
   defaultValues,
@@ -68,7 +73,7 @@ export default function TransactionForm({
           name="date"
           type="date"
           required
-          defaultValue={defaultValues?.date ?? new Date().toISOString().split("T")[0]}
+          defaultValue={defaultValues?.date ?? getLocalDateValue()}
         />
       </div>
 
@@ -117,6 +122,7 @@ export default function TransactionForm({
           id="amount"
           name="amount"
           type="number"
+          inputMode="numeric"
           required
           min={1}
           placeholder="例: 1500"
