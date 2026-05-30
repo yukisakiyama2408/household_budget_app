@@ -7,28 +7,29 @@ import type { Category } from "@/types/database";
 
 type Tab = "paypay" | "credit";
 
-const tabs: { key: Tab; label: string }[] = [
-  { key: "paypay", label: "PayPay" },
-  { key: "credit", label: "クレジットカード" },
+const tabs: { key: Tab; label: string; description: string }[] = [
+  { key: "paypay", label: "PayPay", description: "PayPayの利用明細CSV" },
+  { key: "credit", label: "クレジットカード", description: "カード利用明細CSV" },
 ];
 
 export default function ImportTabs({ categories }: { categories: Category[] }) {
   const [tab, setTab] = useState<Tab>("paypay");
 
   return (
-    <div className="space-y-6">
-      <div className="flex border-b">
-        {tabs.map(({ key, label }) => (
+    <div className="space-y-5">
+      <div className="grid gap-2 sm:grid-cols-2">
+        {tabs.map(({ key, label, description }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`rounded-lg border p-4 text-left transition-colors ${
               tab === key
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-indigo-200 bg-indigo-50 text-indigo-800"
+                : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
             }`}
           >
-            {label}
+            <span className="block text-sm font-bold">{label}</span>
+            <span className="mt-1 block text-xs text-gray-500">{description}</span>
           </button>
         ))}
       </div>
