@@ -539,6 +539,7 @@ export async function getTransactions({
   categoryId,
   payMethod,
   q,
+  needs,
   limit,
   dateFrom,
   dateTo,
@@ -548,6 +549,7 @@ export async function getTransactions({
   categoryId?: string;
   payMethod?: string;
   q?: string;
+  needs?: string;
   limit?: number;
   dateFrom?: string;
   dateTo?: string;
@@ -583,6 +585,12 @@ export async function getTransactions({
   const search = q?.trim().replaceAll(",", " ");
   if (search) {
     query = query.or(`content.ilike.%${search}%,store.ilike.%${search}%`);
+  }
+  if (needs === "category") {
+    query = query.is("category_id", null);
+  }
+  if (needs === "store") {
+    query = query.is("store", null).eq("type", "expense");
   }
   if (limit) {
     query = query.limit(limit);

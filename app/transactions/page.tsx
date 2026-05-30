@@ -12,6 +12,7 @@ type Props = {
     category_id?: string;
     pay_method?: string;
     q?: string;
+    needs?: string;
   }>;
 };
 
@@ -68,6 +69,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
       categoryId: params.category_id,
       payMethod: params.pay_method,
       q: params.q,
+      needs: params.needs,
     }),
     getCategories(),
   ]);
@@ -105,9 +107,14 @@ export default async function TransactionsPage({ searchParams }: Props) {
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-950">収支一覧</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              {monthLabel}の取引。登録内容の確認と修正をここで行います。
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+              <span>{monthLabel}の取引。登録内容の確認と修正をここで行います。</span>
+              {!selectedMonth && (
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
+                  全期間表示中
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center justify-end gap-2">
             <Link

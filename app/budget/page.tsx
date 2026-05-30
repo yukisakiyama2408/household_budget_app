@@ -166,22 +166,44 @@ export default async function BudgetPage({ searchParams }: Props) {
             )}
           </section>
 
-          <section className="space-y-3">
-            <BudgetReviewTools view={view} />
-            <div className="rounded-lg border bg-white p-4">
-              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <section className="rounded-lg border bg-white p-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">AIで予算を見直す</h2>
+                <p className="mt-1 text-xs text-gray-500">
+                  CSVを渡して予算案を作り、出力を貼り付けて予算表へ反映します。
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <BudgetReviewTools view={view} />
+
+              <div className="border-t pt-4">
+                <div className="mb-3 grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
+                  <div className="rounded-md bg-gray-50 px-3 py-2">
+                    <span className="font-bold text-gray-700">3. AI出力</span>
+                    <span className="ml-1">回答を下の入力欄へ貼り付けます。</span>
+                  </div>
+                  <div className="rounded-md bg-gray-50 px-3 py-2">
+                    <span className="font-bold text-gray-700">4. 反映</span>
+                    <span className="ml-1">認識結果を確認して一括登録します。</span>
+                  </div>
+                </div>
                 <div>
-                  <h2 className="text-sm font-bold text-gray-900">AI出力を反映</h2>
+                  <h3 className="text-sm font-bold text-gray-900">AI出力を反映</h3>
                   <p className="mt-1 text-xs text-gray-500">
                     コピーしたプロンプトの回答を貼り付けて、予算表へ一括登録します。
                   </p>
                 </div>
+                <div className="mt-3">
+                  {view === "monthly" ? (
+                    <CombinedBudgetImport year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
+                  ) : (
+                    <GeminiBudgetImport type="weekly" weekStart={geminiWeekStart} weekLabel={geminiWeekLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
+                  )}
+                </div>
               </div>
-              {view === "monthly" ? (
-                <CombinedBudgetImport year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
-              ) : (
-                <GeminiBudgetImport type="weekly" weekStart={geminiWeekStart} weekLabel={geminiWeekLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
-              )}
             </div>
           </section>
 

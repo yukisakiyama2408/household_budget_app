@@ -80,6 +80,16 @@ export default function InsightCards({ currentItems, prevBreakdown, totalExpense
     .sort((a, b) => a.diff - b.diff)
     .slice(0, 3);
 
+  const unbudgeted = currentItems
+    .filter((i) => i.budgetAmount === 0 && i.actualAmount > 0)
+    .sort((a, b) => b.actualAmount - a.actualAmount)
+    .slice(0, 3);
+
+  const newSpending = currentItems
+    .filter((i) => i.actualAmount > 0 && (prevMap.get(i.category.name) ?? 0) === 0)
+    .sort((a, b) => b.actualAmount - a.actualAmount)
+    .slice(0, 3);
+
   // 支出集中（最大カテゴリ）
   const topCategory =
     totalExpense > 0
@@ -92,7 +102,12 @@ export default function InsightCards({ currentItems, prevBreakdown, totalExpense
     : 0;
 
   const hasInsights =
-    overBudget.length > 0 || increased.length > 0 || decreased.length > 0 || topCategory;
+    overBudget.length > 0 ||
+    increased.length > 0 ||
+    decreased.length > 0 ||
+    unbudgeted.length > 0 ||
+    newSpending.length > 0 ||
+    topCategory;
 
   if (!hasInsights) {
     return (
@@ -122,6 +137,28 @@ export default function InsightCards({ currentItems, prevBreakdown, totalExpense
             <p key={i.category.id}>
               <span className="font-medium">{i.category.name}</span> が先月比{" "}
               <span className="font-medium">+{i.pct}%</span>（+{fmt(i.diff)}）増加しています
+            </p>
+          ))}
+        </InsightCard>
+      )}
+
+      {unbudgeted.length > 0 && (
+        <InsightCard variant="yellow" title="予算未設定の支出">
+          {unbudgeted.map((i) => (
+            <p key={i.category.id}>
+              <span className="font-medium">{i.category.name}</span> に{" "}
+              <span className="font-medium">{fmt(i.actualAmount)}</span> の支出があります。予算設定を検討してください
+            </p>
+          ))}
+        </InsightCard>
+      )}
+
+      {newSpending.length > 0 && (
+        <InsightCard variant="blue" title="先月になかった支出">
+          {newSpending.map((i) => (
+            <p key={i.category.id}>
+              <span className="font-medium">{i.category.name}</span> が今月{" "}
+              <span className="font-medium">{fmt(i.actualAmount)}</span> 発生しています
             </p>
           ))}
         </InsightCard>

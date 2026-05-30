@@ -51,12 +51,14 @@ export default function TransactionFilters({ categories, defaultMonth = "", cate
   const selectedType = searchParams.get("type") ?? "";
   const selectedPayMethod = searchParams.get("pay_method") ?? "";
   const selectedCategoryId = searchParams.get("category_id") ?? "";
+  const selectedNeeds = searchParams.get("needs") ?? "";
   const maxCategoryTotal = Math.max(...categoryTotals.map((c) => c.amount), 1);
   const hasActiveFilters =
     currentQ ||
     selectedType ||
     selectedPayMethod ||
     selectedCategoryId ||
+    selectedNeeds ||
     monthParam === "all" ||
     (monthParam && monthParam !== defaultMonth);
 
@@ -167,6 +169,30 @@ export default function TransactionFilters({ categories, defaultMonth = "", cate
               onClick={() => update("pay_method", value)}
               className={`h-8 rounded-full border px-3 text-xs font-bold transition-colors ${
                 selectedPayMethod === value
+                  ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                  : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="mb-1.5 block text-[11px] font-bold text-gray-500">確認する項目</label>
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            ["", "すべて"],
+            ["category", "カテゴリなし"],
+            ["store", "店舗なし"],
+          ].map(([value, label]) => (
+            <button
+              key={value || "all"}
+              type="button"
+              onClick={() => update("needs", value)}
+              className={`h-8 rounded-full border px-3 text-xs font-bold transition-colors ${
+                selectedNeeds === value
                   ? "border-indigo-200 bg-indigo-50 text-indigo-700"
                   : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
               }`}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import Papa from "papaparse";
 import { importTransactions, fetchTransactionsForDuplicateCheck, fetchRecentTransactions, fetchCategoryByStores, type RecentTransaction } from "@/lib/actions";
 import type { Category } from "@/types/database";
@@ -49,6 +50,7 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
     if (filterEnd && row.date > filterEnd) return false;
     return true;
   });
+  const highDuplicateCount = filteredIndexedRows.filter(({ row }) => getDuplicateLevel(row) === "high").length;
 
   function handleFile(file: File) {
     setError(null);
@@ -150,6 +152,15 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
     setRows((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function removeHighDuplicates() {
+    const duplicateIndexes = new Set(
+      filteredIndexedRows
+        .filter(({ row }) => getDuplicateLevel(row) === "high")
+        .map(({ originalIndex }) => originalIndex)
+    );
+    setRows((prev) => prev.filter((_, i) => !duplicateIndexes.has(i)));
+  }
+
   function handleImport() {
     const importTargets = filteredIndexedRows;
     startTransition(async () => {
@@ -197,9 +208,12 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
       )}
 
       {result && (
-        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded p-3">
-          {result.imported}件をインポートしました。
-        </p>
+        <div className="flex flex-col gap-2 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-700 sm:flex-row sm:items-center sm:justify-between">
+          <span>{result.imported}件をインポートしました。</span>
+          <Link href="/transactions" className="font-bold text-green-800 hover:underline">
+            取引一覧で確認
+          </Link>
+        </div>
       )}
 
       {recentTx.length > 0 && (
@@ -276,17 +290,32 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
             )}
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-gray-600">
               {filteredIndexedRows.length}件表示（全{rows.length}件）
+              {highDuplicateCount > 0 && (
+                <span className="ml-2 font-medium text-orange-700">
+                  重複の可能性大 {highDuplicateCount}件
+                </span>
+              )}
             </p>
-            <button
-              onClick={handleImport}
-              disabled={isPending || filteredIndexedRows.length === 0}
-              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 transition-colors disabled:opacity-50"
-            >
-              {isPending ? "インポート中..." : `${filteredIndexedRows.length}件をインポート`}
-            </button>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              {highDuplicateCount > 0 && (
+                <button
+                  onClick={removeHighDuplicates}
+                  className="px-3 py-2 text-sm font-medium text-orange-700 border border-orange-200 bg-orange-50 rounded hover:bg-orange-100 transition-colors"
+                >
+                  重複候補を除外
+                </button>
+              )}
+              <button
+                onClick={handleImport}
+                disabled={isPending || filteredIndexedRows.length === 0}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              >
+                {isPending ? "インポート中..." : `${filteredIndexedRows.length}件をインポート`}
+              </button>
+            </div>
           </div>
 
           {/* Mobile: card slider */}
