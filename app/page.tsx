@@ -14,6 +14,7 @@ import GoalHeroCard from "@/components/home/GoalHeroCard";
 import BudgetTransactionsSection from "@/components/home/BudgetTransactionsSection";
 
 const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
+const MONTHLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品", "その他"];
 const DOW_LABEL = ["日", "月", "火", "水", "木", "金", "土"];
 
 function fmtDate(d: Date): string {
@@ -68,13 +69,16 @@ export default async function HomePage() {
   const weeklyItems = allWeeklyItems.filter((i) =>
     WEEKLY_BUDGET_CATEGORIES.includes(i.category.name)
   );
+  const monthlyItems = budgetItems.filter((i) =>
+    MONTHLY_BUDGET_CATEGORIES.includes(i.category.name)
+  );
 
-  const totalBudget = budgetItems.reduce((s, i) => s + i.budgetAmount, 0);
-  const totalActual = budgetItems.reduce((s, i) => s + i.actualAmount, 0);
+  const totalBudget = monthlyItems.reduce((s, i) => s + i.budgetAmount, 0);
+  const totalActual = monthlyItems.reduce((s, i) => s + i.actualAmount, 0);
   const weeklyBudget = weeklyItems.reduce((s, i) => s + i.weeklyBudget, 0);
   const weeklyExpense = weeklyItems.reduce((s, i) => s + i.weeklyActual, 0);
 
-  const monthlyCategories = budgetItems
+  const monthlyCategories = monthlyItems
     .filter((i) => i.budgetAmount > 0)
     .map((i) => ({
       id: i.category.id,

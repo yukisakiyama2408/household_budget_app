@@ -17,7 +17,6 @@ import Link from "next/link";
 import {
   getBudgetData,
   getWeeklyBudgetData,
-  getMonthlySummary,
   getGoalsWithProgress,
   getCategories,
   getFixedExpenses,
@@ -74,10 +73,9 @@ export default async function BudgetPage({ searchParams }: Props) {
   const geminiMonth = currentMonthHasBudget ? (nowMonth === 12 ? 1 : nowMonth + 1) : nowMonth;
   const geminiMonthLabel = `${geminiYear}年${geminiMonth}月`;
 
-  const [goalsWithProgress, allMonthlyItems, monthlySummary, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
+  const [goalsWithProgress, allMonthlyItems, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
     isBudgetTab ? getGoalsWithProgress() : Promise.resolve([]),
     isBudgetTab ? getBudgetData(year, month) : Promise.resolve([]),
-    isBudgetTab ? getMonthlySummary(year, month) : Promise.resolve({ expense: 0, income: 0, balance: 0, reimbursement: 0, effectiveExpense: 0 }),
     (isBudgetTab || isCategoriesTab) ? getCategories() : Promise.resolve([]),
     isFixedTab ? getFixedExpenses() : Promise.resolve([]),
     isFixedTab ? getFixedExpenseLogs() : Promise.resolve([]),
@@ -160,7 +158,7 @@ export default async function BudgetPage({ searchParams }: Props) {
               </div>
             )}
             {view === "monthly" ? (
-              <TotalBudgetCard type="monthly" year={year} month={month} budgetAmount={totalMonthlyBudget} actualAmount={(monthlySummary as { effectiveExpense: number }).effectiveExpense} />
+              <TotalBudgetCard type="monthly" year={year} month={month} budgetAmount={totalMonthlyBudget} actualAmount={totalMonthlyActual} />
             ) : (
               <TotalBudgetCard type="weekly" weekStart={weekStart} weekLabel={weekRange?.label ?? ""} budgetAmount={totalWeeklyBudget} actualAmount={weeklyActualTotal} />
             )}
