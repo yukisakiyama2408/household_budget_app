@@ -5,6 +5,10 @@ function fmt(n: number) {
   return `¥${Math.abs(n).toLocaleString("ja-JP")}`;
 }
 
+function fmtSigned(n: number) {
+  return `${n < 0 ? "-" : ""}¥${Math.abs(n).toLocaleString("ja-JP")}`;
+}
+
 function daysUntil(deadline: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -130,7 +134,7 @@ export default function GoalHeroCard({ goals }: Props) {
       <div className="mt-auto border-t pt-3 space-y-1.5">
         <div className="flex justify-between text-[11px]">
           <span className="text-muted-foreground">{isSavings ? "現在の残高" : "今月の支出"}</span>
-          <span className="font-semibold tabular-nums">{fmt(goal.currentAmount)}</span>
+          <span className="font-semibold tabular-nums">{fmtSigned(goal.currentAmount)}</span>
         </div>
         <div className="flex justify-between text-[11px]">
           <span className="text-muted-foreground">目標金額</span>
