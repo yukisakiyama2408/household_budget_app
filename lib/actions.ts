@@ -150,6 +150,7 @@ export async function upsertCreditSettlement(year: number, month: number, amount
   if (error) throw new Error(error.message);
 
   revalidatePath("/daily");
+  revalidatePath("/monthly");
 }
 
 export async function createFixedExpense(formData: FormData) {

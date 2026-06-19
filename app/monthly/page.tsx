@@ -196,17 +196,15 @@ export default async function DashboardPage({ searchParams }: Props) {
       </>
     );
   } else if (view === "daily") {
-    const currentYear = params.year ? parseInt(params.year) : now.getFullYear();
+    const [currentYear, currentMonth] = params.month
+      ? params.month.split("-").map(Number)
+      : [
+          params.year ? parseInt(params.year) : now.getFullYear(),
+          params.year && parseInt(params.year) !== now.getFullYear() ? 1 : now.getMonth() + 1,
+        ];
     const monthlyData = await getDailyData(currentYear);
     content = (
-      <>
-        <YearSelector year={currentYear} />
-        <div className="space-y-2">
-          {monthlyData.map((data) => (
-            <DailyTable key={`${data.year}-${data.month}`} data={data} />
-          ))}
-        </div>
-      </>
+      <DailyTable data={monthlyData[currentMonth - 1]} />
     );
   } else {
     const [year, mon] = params.month
@@ -262,7 +260,7 @@ export default async function DashboardPage({ searchParams }: Props) {
         <PageTabs tabs={ANALYSIS_TABS} currentTab={tab} basePath="/monthly" />
         <DashboardTabs activeView={view} />
       </div>
-      <div className={`${isDaily ? "max-w-full" : "max-w-5xl mx-auto"} px-4 pb-8 space-y-6`}>
+      <div className={`${isDaily ? "max-w-7xl mx-auto" : "max-w-5xl mx-auto"} px-4 pb-8 space-y-6`}>
         {content}
       </div>
     </div>

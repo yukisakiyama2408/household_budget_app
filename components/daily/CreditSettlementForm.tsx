@@ -25,30 +25,40 @@ export default function CreditSettlementForm({ year, month, currentAmount, settl
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2 text-xs mt-1 mb-3">
-      <span className="text-gray-500">クレジット引き落とし</span>
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        className="border rounded px-2 py-1 text-sm"
-      />
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="w-32 border rounded px-2 py-1 text-right tabular-nums text-sm"
-        min={0}
-        placeholder="0"
-      />
-      <span className="text-gray-400">円</span>
-      <button
-        type="submit"
-        disabled={isPending}
-        className="px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 disabled:opacity-50"
-      >
-        {isPending ? "保存中…" : "保存"}
-      </button>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3 border-b bg-slate-50 px-4 py-3 sm:px-5">
+      <span className="text-xs font-bold text-gray-600">クレジット引き落とし設定</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 text-xs text-gray-500">
+          引落日
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="h-9 rounded-lg border bg-white px-2 text-sm text-gray-700"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-xs text-gray-500">
+          金額
+          <span className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">¥</span>
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="h-9 w-32 rounded-lg border bg-white pl-7 pr-3 text-right text-sm tabular-nums text-gray-700"
+              min={0}
+              placeholder="0"
+            />
+          </span>
+        </label>
+        <button
+          type="submit"
+          disabled={isPending}
+          className="h-9 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {isPending ? "保存中…" : "保存"}
+        </button>
+      </div>
     </form>
   );
 }

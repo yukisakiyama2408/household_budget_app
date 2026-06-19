@@ -22,7 +22,7 @@ export default function DashboardTabs({ activeView }: { activeView: View }) {
     const monthParam = searchParams.get("month");
     const yearParam = searchParams.get("year");
 
-    if (view === "monthly" || view === "weekly") {
+    if (view === "monthly" || view === "weekly" || view === "daily") {
       if (monthParam) {
         params.set("month", monthParam);
       } else if (yearParam) {
