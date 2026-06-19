@@ -36,7 +36,7 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
   const [recentTx, setRecentTx] = useState<RecentTransaction[]>([]);
 
   useEffect(() => {
-    fetchRecentTransactions(5).then(setRecentTx).catch(() => {});
+    fetchRecentTransactions(5, "Cash").then(setRecentTx).catch(() => {});
   }, []);
 
   function getDuplicateLevel(row: ParsedRow): "high" | "low" | null {
@@ -185,7 +185,7 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
         if (inputRef.current && rows.length === importTargets.length) {
           inputRef.current.value = "";
         }
-        fetchRecentTransactions(5).then(setRecentTx).catch(() => {});
+        fetchRecentTransactions(5, "Cash").then(setRecentTx).catch(() => {});
       } catch (e) {
         setError(e instanceof Error ? e.message : "インポートに失敗しました");
       }
