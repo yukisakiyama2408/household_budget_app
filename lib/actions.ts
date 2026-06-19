@@ -282,9 +282,21 @@ export type RecentTransaction = {
 
 export async function fetchRecentTransactions(limit = 5, payMethod?: "Cash" | "Credit"): Promise<RecentTransaction[]> {
   const supabase = await createClient();
+  const todayParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const getTodayPart = (type: "year" | "month" | "day") =>
+    todayParts.find((part) => part.type === type)?.value ?? "";
+  const today = `${getTodayPart("year")}-${getTodayPart("month")}-${getTodayPart("day")}`;
+
   let query = supabase
     .from("transactions")
     .select("id, date, content, amount, type, categories(name, color)")
+    .lte("date", today)
+    .order("date", { ascending: false })
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(limit);
@@ -359,4 +371,3 @@ export async function applyFixedExpensesAction(
   revalidatePath("/fixed");
   return result;
 }
-
