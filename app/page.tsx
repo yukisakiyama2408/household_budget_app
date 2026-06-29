@@ -72,11 +72,25 @@ export default async function HomePage() {
   const monthlyItems = budgetItems.filter((i) =>
     MONTHLY_BUDGET_CATEGORIES.includes(i.category.name)
   );
+  const today = fmtDate(now);
+  const activeWeeklyPeriodIndex =
+    weeklyItems[0]?.periods.findIndex(
+      (period) => period.start <= today && today <= period.end
+    ) ?? -1;
+  const resolvedWeeklyPeriodIndex = activeWeeklyPeriodIndex >= 0 ? activeWeeklyPeriodIndex : 0;
+  const activeWeeklyPeriod =
+    weeklyItems[0]?.periods[resolvedWeeklyPeriodIndex];
 
   const totalBudget = monthlyItems.reduce((s, i) => s + i.budgetAmount, 0);
   const totalActual = monthlyItems.reduce((s, i) => s + i.actualAmount, 0);
-  const weeklyBudget = weeklyItems.reduce((s, i) => s + i.weeklyBudget, 0);
-  const weeklyExpense = weeklyItems.reduce((s, i) => s + i.weeklyActual, 0);
+  const weeklyBudget = weeklyItems.reduce(
+    (sum, item) => sum + (item.periods[resolvedWeeklyPeriodIndex]?.budget ?? 0),
+    0
+  );
+  const weeklyExpense = weeklyItems.reduce(
+    (sum, item) => sum + (item.periods[resolvedWeeklyPeriodIndex]?.actual ?? 0),
+    0
+  );
 
   const monthlyCategories = monthlyItems
     .filter((i) => i.budgetAmount > 0)
@@ -89,14 +103,18 @@ export default async function HomePage() {
     }));
 
   const weeklyCategories = weeklyItems
-    .filter((i) => i.weeklyBudget > 0)
-    .map((i) => ({
-      id: i.category.id,
-      name: i.category.name,
-      color: i.category.color ?? null,
-      budget: i.weeklyBudget,
-      actual: i.weeklyActual,
-    }));
+    .map((item) => {
+      const period = item.periods[resolvedWeeklyPeriodIndex];
+      if (!period || period.budget <= 0) return null;
+      return {
+        id: item.category.id,
+        name: item.category.name,
+        color: item.category.color ?? null,
+        budget: period.budget,
+        actual: period.actual,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
@@ -126,7 +144,7 @@ export default async function HomePage() {
       {/* Budget tabs + transactions (shared category filter state) */}
       <BudgetTransactionsSection
         weeklyData={{
-          subtitle: currentWeek.label,
+          subtitle: activeWeeklyPeriod?.label ?? currentWeek.label,
           linkHref: "/budget?view=weekly",
           totalBudget: weeklyBudget,
           totalActual: weeklyExpense,
