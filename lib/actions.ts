@@ -104,16 +104,33 @@ export async function upsertBudget(year: number, month: number, categoryId: numb
   revalidatePath("/budget");
 }
 
-export async function upsertWeeklyBudget(weekStart: string, categoryId: number, amount: number) {
+export async function upsertWeeklyBudgetPeriod(
+  periodStart: string,
+  periodEnd: string,
+  categoryId: number,
+  amount: number
+) {
+  if (periodEnd < periodStart) throw new Error("予算期間が不正です");
+  if (!Number.isFinite(amount) || amount < 0) throw new Error("予算額が不正です");
+
   const supabase = await createClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from("weekly_budgets") as any)
-    .upsert({ week_start: weekStart, category_id: categoryId, amount }, { onConflict: "week_start,category_id" });
+  const { error } = await (supabase.from("weekly_budget_periods") as any)
+    .upsert(
+      {
+        period_start: periodStart,
+        period_end: periodEnd,
+        category_id: categoryId,
+        amount: Math.round(amount),
+      },
+      { onConflict: "period_start,period_end,category_id" }
+    );
 
-  if (error && error.code !== "42P01") throw new Error(error.message);
+  if (error) throw new Error(error.message);
 
   revalidatePath("/budget");
+  revalidatePath("/");
 }
 
 export async function upsertMonthlyTotalBudget(year: number, month: number, amount: number) {

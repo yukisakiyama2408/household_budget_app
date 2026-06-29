@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import type { Budget, Category, CreditSettlement, FixedExpense, FixedExpenseLog, Transaction } from "@/types/database";
-import { getWeeksOfMonth } from "@/lib/dateUtils";
+import { getWeekBudgetPeriods } from "@/lib/dateUtils";
 
 export type PaceData = {
   dayOfMonth: number;
@@ -859,80 +859,123 @@ export async function getBudgetData(year: number, month: number): Promise<Budget
     }));
 }
 
+export type WeeklyBudgetPeriodItem = {
+  start: string;
+  end: string;
+  label: string;
+  year: number;
+  month: number;
+  monthlyBudget: number;
+  budgetSet: number | null;
+  budgetDerived: number;
+  budget: number;
+  actual: number;
+};
+
 export type WeeklyBudgetItem = {
   category: Category;
-  monthlyBudget: number;
-  weeklyBudgetSet: number;      // weekly_budgets テーブルの登録値（0=未登録）
-  weeklyBudgetDerived: number;  // 月次予算 ÷ 週数（フォールバック）
-  weeklyBudget: number;         // 実効値: 登録済みなら登録値、なければ派生値
+  periods: WeeklyBudgetPeriodItem[];
+  weeklyBudget: number;
   weeklyActual: number;
 };
 
 export async function getWeeklyBudgetData(
-  year: number,
-  month: number,
+  _year: number,
+  _month: number,
   weekStart: string,
   weekEnd: string
 ): Promise<WeeklyBudgetItem[]> {
   const supabase = await createClient();
+  const periods = getWeekBudgetPeriods(weekStart, weekEnd);
 
   const [
     { data: categoryData, error: catError },
-    { data: budgetData, error: budgetError },
-    { data: weekTxData, error: weekTxError },
-    weeklyBudgetResult,
+    periodBudgetResult,
+    ...monthlyBudgetResults
   ] = await Promise.all([
     supabase.from("categories").select("*").order("display_order", { ascending: true }),
-    supabase.from("budgets").select("*").eq("year", year).eq("month", month),
-    supabase
-      .from("transactions")
-      .select("category_id, amount")
-      .eq("type", "expense")
-      .gte("date", weekStart)
-      .lte("date", weekEnd),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from("weekly_budgets") as any)
-      .select("category_id, amount")
-      .eq("week_start", weekStart),
+    (supabase.from("weekly_budget_periods") as any)
+      .select("period_start, period_end, category_id, amount")
+      .gte("period_start", weekStart)
+      .lte("period_end", weekEnd),
+    ...periods.map((period) =>
+      supabase.from("budgets").select("*").eq("year", period.year).eq("month", period.month)
+    ),
   ]);
 
   if (catError) throw catError;
-  if (budgetError) throw budgetError;
-  if (weekTxError) throw weekTxError;
+  for (const result of monthlyBudgetResults) {
+    if (result.error) throw result.error;
+  }
+  if (periodBudgetResult.error) throw periodBudgetResult.error;
 
   const categories = (categoryData ?? []) as Category[];
-  const budgets = (budgetData ?? []) as Budget[];
-  const weekTx = (weekTxData ?? []) as { category_id: number | null; amount: number }[];
+  const periodBudgets = (periodBudgetResult.data ?? []) as {
+    period_start: string;
+    period_end: string;
+    category_id: number;
+    amount: number;
+  }[];
+  const monthlyBudgetMaps = monthlyBudgetResults.map(
+    (result) => new Map(((result.data ?? []) as Budget[]).map((budget) => [budget.category_id, budget.amount]))
+  );
+  const periodBudgetMap = new Map(
+    periodBudgets.map((budget) => [
+      `${budget.period_start}:${budget.period_end}:${budget.category_id}`,
+      budget.amount,
+    ])
+  );
+  const actualByPeriodAndCategory = new Map<string, number>();
 
-  const weeklyBudgetRaw =
-    weeklyBudgetResult.error?.code === "42P01"
-      ? []
-      : ((weeklyBudgetResult.data ?? []) as { category_id: number; amount: number }[]);
-
-  const budgetMap = new Map(budgets.map((b) => [b.category_id, b.amount]));
-  const weeklyBudgetMap = new Map(weeklyBudgetRaw.map((w) => [w.category_id, w.amount]));
-  const weekActualMap = new Map<number, number>();
-  for (const tx of weekTx) {
-    if (tx.category_id != null) {
-      weekActualMap.set(tx.category_id, (weekActualMap.get(tx.category_id) ?? 0) + tx.amount);
+  const periodTransactionResults = await Promise.all(
+    periods.map((period) =>
+      supabase
+        .from("transactions")
+        .select("category_id, amount")
+        .eq("type", "expense")
+        .gte("date", period.start)
+        .lte("date", period.end)
+    )
+  );
+  for (const [periodIndex, result] of periodTransactionResults.entries()) {
+    if (result.error) throw result.error;
+    for (const tx of (result.data ?? []) as { category_id: number | null; amount: number }[]) {
+      if (tx.category_id == null) continue;
+      const key = `${periodIndex}:${tx.category_id}`;
+      actualByPeriodAndCategory.set(key, (actualByPeriodAndCategory.get(key) ?? 0) + tx.amount);
     }
   }
 
-  const weeksCount = getWeeksOfMonth(year, month).length;
-
   return categories
     .filter((c) => c.type === "expense" || c.type === "both")
-    .map((c) => {
-      const monthly = budgetMap.get(c.id) ?? 0;
-      const derived = weeksCount > 0 ? Math.round(monthly / weeksCount) : 0;
-      const set = weeklyBudgetMap.get(c.id) ?? 0;
+    .map((category) => {
+      const periodItems = periods.map((period, periodIndex) => {
+        const monthlyBudget = monthlyBudgetMaps[periodIndex].get(category.id) ?? 0;
+        const budgetDerived =
+          period.weeksInMonth > 0 ? Math.round(monthlyBudget / period.weeksInMonth) : 0;
+        const budgetSet =
+          periodBudgetMap.get(`${period.start}:${period.end}:${category.id}`) ?? null;
+
+        return {
+          start: period.start,
+          end: period.end,
+          label: period.label,
+          year: period.year,
+          month: period.month,
+          monthlyBudget,
+          budgetSet,
+          budgetDerived,
+          budget: budgetSet ?? budgetDerived,
+          actual: actualByPeriodAndCategory.get(`${periodIndex}:${category.id}`) ?? 0,
+        };
+      });
+
       return {
-        category: c,
-        monthlyBudget: monthly,
-        weeklyBudgetSet: set,
-        weeklyBudgetDerived: derived,
-        weeklyBudget: set > 0 ? set : derived,
-        weeklyActual: weekActualMap.get(c.id) ?? 0,
+        category,
+        periods: periodItems,
+        weeklyBudget: periodItems.reduce((sum, period) => sum + period.budget, 0),
+        weeklyActual: periodItems.reduce((sum, period) => sum + period.actual, 0),
       };
     });
 }
@@ -974,11 +1017,15 @@ export async function hasMonthlyBudget(year: number, month: number): Promise<boo
 
 export async function hasWeeklyBudget(weekStart: string): Promise<boolean> {
   const supabase = await createClient();
+  const weekStartDate = new Date(`${weekStart}T00:00:00`);
+  weekStartDate.setDate(weekStartDate.getDate() + 6);
+  const weekEnd = `${weekStartDate.getFullYear()}-${String(weekStartDate.getMonth() + 1).padStart(2, "0")}-${String(weekStartDate.getDate()).padStart(2, "0")}`;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from("weekly_budgets") as any)
+  const { data, error } = await (supabase.from("weekly_budget_periods") as any)
     .select("category_id")
-    .eq("week_start", weekStart)
+    .gte("period_start", weekStart)
+    .lte("period_end", weekEnd)
     .limit(1);
-  if (error && error.code !== "42P01") throw error;
+  if (error) throw error;
   return ((data ?? []) as unknown[]).length > 0;
 }

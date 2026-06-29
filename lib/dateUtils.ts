@@ -3,6 +3,16 @@ export const fmtDate = (d: Date) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 export type WeekRange = { start: string; end: string; label: string };
+export type BudgetPeriod = WeekRange & {
+  year: number;
+  month: number;
+  weeksInMonth: number;
+};
+
+function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
 
 export function getWeeksOfMonth(year: number, month: number): WeekRange[] {
   const firstDay = new Date(year, month - 1, 1);
@@ -30,6 +40,35 @@ export function getWeeksOfMonth(year: number, month: number): WeekRange[] {
     cursor.setDate(cursor.getDate() + 7);
   }
   return weeks;
+}
+
+export function getWeekBudgetPeriods(weekStart: string, weekEnd: string): BudgetPeriod[] {
+  const end = parseLocalDate(weekEnd);
+  const cursor = parseLocalDate(weekStart);
+  const periods: BudgetPeriod[] = [];
+
+  while (cursor <= end) {
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth() + 1;
+    const monthEnd = new Date(year, month, 0);
+    const periodEnd = monthEnd < end ? monthEnd : end;
+    const start = fmtDate(cursor);
+    const periodEndValue = fmtDate(periodEnd);
+
+    periods.push({
+      year,
+      month,
+      start,
+      end: periodEndValue,
+      label: `${month}/${cursor.getDate()}-${periodEnd.getDate()}`,
+      weeksInMonth: getWeeksOfMonth(year, month).length,
+    });
+
+    cursor.setTime(periodEnd.getTime());
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return periods;
 }
 
 export function getCurrentWeekStart(): string {

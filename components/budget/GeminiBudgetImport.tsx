@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import {
   upsertBudget,
-  upsertWeeklyBudget,
+  upsertWeeklyBudgetPeriod,
   upsertMonthlyTotalBudget,
   upsertWeeklyTotalBudget,
 } from "@/lib/actions";
@@ -22,6 +22,7 @@ type WeeklyProps = {
   type: "weekly";
   weekStart: string;
   weekLabel?: string;
+  periods: { start: string; end: string; label: string }[];
   categories: CategoryEntry[];
 };
 
@@ -57,6 +58,9 @@ export default function GeminiBudgetImport(props: Props) {
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
+  const [selectedPeriodStart, setSelectedPeriodStart] = useState(
+    props.type === "weekly" ? props.periods[0]?.start ?? "" : ""
+  );
 
   const parsed = text ? parseGeminiOutput(text) : { categories: new Map<string, number>(), total: undefined };
 
@@ -82,7 +86,10 @@ export default function GeminiBudgetImport(props: Props) {
         if (props.type === "monthly") {
           tasks.push(upsertBudget(props.year, props.month, c.id, c.amount));
         } else {
-          tasks.push(upsertWeeklyBudget(props.weekStart, c.id, c.amount));
+          const period = props.periods.find((item) => item.start === selectedPeriodStart);
+          if (period) {
+            tasks.push(upsertWeeklyBudgetPeriod(period.start, period.end, c.id, c.amount));
+          }
         }
       }
 
@@ -119,7 +126,7 @@ export default function GeminiBudgetImport(props: Props) {
             <p className="text-xs text-purple-500 mt-0.5">{props.monthLabel}の予算として登録します</p>
           )}
           {props.type === "weekly" && props.weekLabel && (
-            <p className="text-xs text-purple-500 mt-0.5">{props.weekLabel}週の予算として登録します</p>
+            <p className="text-xs text-purple-500 mt-0.5">{props.weekLabel}の予算として登録します</p>
           )}
         </div>
         <button
@@ -139,6 +146,20 @@ export default function GeminiBudgetImport(props: Props) {
         </div>
       ) : (
         <>
+          {props.type === "weekly" && props.periods.length > 1 && (
+            <label className="block space-y-1 text-xs text-purple-800">
+              <span className="font-medium">登録する対象期間</span>
+              <select
+                value={selectedPeriodStart}
+                onChange={(event) => setSelectedPeriodStart(event.target.value)}
+                className="w-full rounded border bg-white px-3 py-2 text-sm text-gray-800"
+              >
+                {props.periods.map((period) => (
+                  <option key={period.start} value={period.start}>{period.label}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}

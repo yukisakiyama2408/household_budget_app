@@ -136,13 +136,26 @@ function getPeriodRange(period: string): { dateFrom: string; dateTo: string; lab
 // ── メインハンドラ ─────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const period = new URL(req.url).searchParams.get("period") ?? "current";
+  const searchParams = new URL(req.url).searchParams;
+  const period = searchParams.get("period") ?? "current";
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth() + 1;
 
   // ── 週次統合（ChatGPT用: 先週＋今週） ──────────────────
   if (period === "weekly") {
+    const requestedTargetStart = searchParams.get("targetStart");
+    const requestedTargetEnd = searchParams.get("targetEnd");
+    const validDate = /^\d{4}-\d{2}-\d{2}$/;
+    const targetStart =
+      requestedTargetStart && validDate.test(requestedTargetStart)
+        ? requestedTargetStart
+        : getWeekBounds(now).dateFrom;
+    const targetEnd =
+      requestedTargetEnd && validDate.test(requestedTargetEnd)
+        ? requestedTargetEnd
+        : getWeekBounds(now).dateTo;
+    const [targetYear, targetMonth] = targetStart.split("-").map(Number);
     const thisWeek = getWeekBounds(now);
     const prevBase = new Date(now);
     prevBase.setDate(now.getDate() - 7);
@@ -153,18 +166,19 @@ export async function GET(req: NextRequest) {
     trendBase.setDate(now.getDate() - 21);
     const trendStart = getWeekBounds(trendBase).dateFrom;
 
-    const [allTx, weeklyBudgetItems, goals, monthlyBudgetItems] = await Promise.all([
+    const [allTx, weeklyBudgetItems, goals, targetMonthlyBudgetItems] = await Promise.all([
       getTransactions({ dateFrom: trendStart, dateTo: thisWeek.dateTo }),
       getWeeklyBudgetData(y, m, thisWeek.dateFrom, thisWeek.dateTo),
       getGoalsWithProgress(),
-      getBudgetData(y, m),
+      getBudgetData(targetYear, targetMonth),
     ]);
 
     const lastWeekTx = allTx.filter((t) => t.date >= lastWeek.dateFrom && t.date <= lastWeek.dateTo);
     const thisWeekTx = allTx.filter((t) => t.date >= thisWeek.dateFrom && t.date <= thisWeek.dateTo);
 
     const lines: string[] = [];
-    lines.push(`# 対象期間: ${lastWeek.dateFrom}〜${thisWeek.dateTo}`);
+    lines.push(`# 予算設定対象期間: ${targetStart}〜${targetEnd}`);
+    lines.push(`# 分析対象期間: ${lastWeek.dateFrom}〜${thisWeek.dateTo}`);
     lines.push("");
 
     lines.push(`## 先週の取引明細 (${lastWeek.dateFrom}〜${lastWeek.dateTo})`);
@@ -218,27 +232,20 @@ export async function GET(req: NextRequest) {
       lines.push([ws, ...catTotals, total].join(","));
     }
 
-    // 今月の月次予算と残予算
-    const thisMonthStart = `${y}-${pad(m)}-01`;
-    const thisMonthTx = allTx.filter((t) => t.date >= thisMonthStart);
-    const monthCatActualMap = new Map<string, number>();
+    // 予算設定対象月の月次予算と残予算
     let monthActualTotal = 0;
-    for (const t of thisMonthTx.filter((t) => t.type === "expense")) {
-      const name = t.categories?.name ?? "未分類";
-      monthCatActualMap.set(name, (monthCatActualMap.get(name) ?? 0) + t.amount);
-      monthActualTotal += t.amount;
-    }
     lines.push("");
-    lines.push(`## 今月の月次予算と残予算 (${y}年${m}月)`);
-    lines.push("カテゴリ,月次予算,今月実績,残予算,消化率(%)");
+    lines.push(`## 対象月の月次予算と残予算 (${targetYear}年${targetMonth}月)`);
+    lines.push("カテゴリ,月次予算,対象月実績,残予算,消化率(%)");
     let monthBudgetTotal = 0;
-    for (const item of monthlyBudgetItems) {
-      const actual = monthCatActualMap.get(item.category.name) ?? 0;
+    for (const item of targetMonthlyBudgetItems) {
+      const actual = item.actualAmount;
       if (item.budgetAmount === 0 && actual === 0) continue;
       const remaining = item.budgetAmount - actual;
       const pct = item.budgetAmount > 0 ? Math.round((actual / item.budgetAmount) * 100) : "";
       lines.push([escapeCsv(item.category.name), item.budgetAmount, actual, remaining, pct].join(","));
       monthBudgetTotal += item.budgetAmount;
+      monthActualTotal += actual;
     }
     lines.push(
       ["合計", monthBudgetTotal, monthActualTotal, monthBudgetTotal - monthActualTotal,
@@ -246,7 +253,7 @@ export async function GET(req: NextRequest) {
     );
 
     lines.push(...buildGoalSection(goals));
-    return toCsvResponse(lines, `weekly-${thisWeek.dateFrom}`);
+    return toCsvResponse(lines, `budget-${targetStart}_${targetEnd}`);
   }
 
   // ── 月次統合（ChatGPT用: 先月＋今月） ──────────────────

@@ -4,10 +4,10 @@ import { useState, useTransition } from "react";
 import {
   upsertBudget,
   upsertMonthlyTotalBudget,
-  upsertWeeklyBudget,
+  upsertWeeklyBudgetPeriod,
   upsertWeeklyTotalBudget,
 } from "@/lib/actions";
-import { getWeeksOfMonth } from "@/lib/dateUtils";
+import { getWeekBudgetPeriods, getWeeksOfMonth } from "@/lib/dateUtils";
 
 type CategoryEntry = { id: number; name: string };
 
@@ -121,8 +121,12 @@ export default function CombinedBudgetImport({ year, month, monthLabel, categori
       }
 
       for (const { week, categoryEntries, total } of weeklyEntries) {
+        const period = getWeekBudgetPeriods(week.start, week.end)
+          .find((item) => item.year === year && item.month === month);
         for (const c of categoryEntries) {
-          tasks.push(upsertWeeklyBudget(week.start, c.id, c.amount));
+          if (period) {
+            tasks.push(upsertWeeklyBudgetPeriod(period.start, period.end, c.id, c.amount));
+          }
         }
         if (total !== undefined) {
           tasks.push(upsertWeeklyTotalBudget(week.start, total));

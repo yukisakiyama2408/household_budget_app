@@ -4,10 +4,10 @@ import WeeklyBudgetTable from "@/components/budget/WeeklyBudgetTable";
 import ViewToggle from "@/components/budget/ViewToggle";
 import WeekSelector from "@/components/budget/WeekSelector";
 import TotalBudgetCard from "@/components/budget/TotalBudgetCard";
-import GeminiBudgetImport from "@/components/budget/GeminiBudgetImport";
 import CombinedBudgetImport from "@/components/budget/CombinedBudgetImport";
 import BudgetTransactionList from "@/components/budget/BudgetTransactionList";
 import BudgetReviewTools from "@/components/budget/BudgetReviewTools";
+import WeeklyBudgetReviewFlow from "@/components/budget/WeeklyBudgetReviewFlow";
 import PageTabs from "@/components/PageTabs";
 import GoalCard from "@/components/goals/GoalCard";
 import GoalForm from "@/components/goals/GoalForm";
@@ -22,10 +22,9 @@ import {
   getFixedExpenses,
   getFixedExpenseLogs,
   hasMonthlyBudget,
-  hasWeeklyBudget,
   getTransactions,
 } from "@/lib/data";
-import { getWeeksOfMonth, getCurrentWeekStart, getNextWeekStart, weekStartToLabel } from "@/lib/dateUtils";
+import { getWeekBudgetPeriods, getWeeksOfMonth, getCurrentWeekStart } from "@/lib/dateUtils";
 
 const BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品", "その他"];
 const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
@@ -62,9 +61,7 @@ export default async function BudgetPage({ searchParams }: Props) {
   const isFixedTab = tab === "fixed";
   const isCategoriesTab = tab === "categories";
 
-  const currentWeekHasBudget = isBudgetTab ? await hasWeeklyBudget(currentWeekStart) : false;
-  const geminiWeekStart = currentWeekHasBudget ? getNextWeekStart() : currentWeekStart;
-  const geminiWeekLabel = weekStartToLabel(geminiWeekStart);
+  const selectedWeekPeriods = getWeekBudgetPeriods(weekStart, weekEnd);
 
   const nowYear = now.getFullYear();
   const nowMonth = now.getMonth() + 1;
@@ -153,7 +150,9 @@ export default async function BudgetPage({ searchParams }: Props) {
             </div>
             {view === "weekly" && (
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-gray-400">週予算 = 月次予算 ÷ {weeks.length}週（未登録時）</p>
+                <p className="text-xs text-gray-400">
+                  未登録時は月次予算 ÷ 月内の週区間数。月を跨ぐ週は月別の期間に分けて計算します。
+                </p>
                 <WeekSelector year={year} month={month} weekStart={weekStart} />
               </div>
             )}
@@ -175,9 +174,16 @@ export default async function BudgetPage({ searchParams }: Props) {
             </div>
 
             <div className="space-y-4">
-              <BudgetReviewTools view={view} />
+              {view === "weekly" ? (
+                <WeeklyBudgetReviewFlow
+                  periods={selectedWeekPeriods}
+                  categories={weeklyItems.map((item) => ({ id: item.category.id, name: item.category.name }))}
+                />
+              ) : (
+                <BudgetReviewTools view={view} />
+              )}
 
-              <div className="border-t pt-4">
+              {view === "monthly" && <div className="border-t pt-4">
                 <div className="mb-3 grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
                   <div className="rounded-md bg-gray-50 px-3 py-2">
                     <span className="font-bold text-gray-700">3. AI出力</span>
@@ -195,13 +201,9 @@ export default async function BudgetPage({ searchParams }: Props) {
                   </p>
                 </div>
                 <div className="mt-3">
-                  {view === "monthly" ? (
-                    <CombinedBudgetImport year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
-                  ) : (
-                    <GeminiBudgetImport type="weekly" weekStart={geminiWeekStart} weekLabel={geminiWeekLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
-                  )}
+                  <CombinedBudgetImport year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
                 </div>
-              </div>
+              </div>}
             </div>
           </section>
 
@@ -217,7 +219,7 @@ export default async function BudgetPage({ searchParams }: Props) {
             {view === "monthly" ? (
               <BudgetTable items={monthlyItems} year={year} month={month} />
             ) : (
-              <WeeklyBudgetTable items={weeklyItems} weekStart={weekStart} />
+              <WeeklyBudgetTable items={weeklyItems} />
             )}
           </section>
 

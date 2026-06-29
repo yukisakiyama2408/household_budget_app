@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { upsertWeeklyBudget } from "@/lib/actions";
+import { upsertWeeklyBudgetPeriod } from "@/lib/actions";
 
 type Props = {
-  weekStart: string;
+  periodStart: string;
+  periodEnd: string;
   categoryId: number;
-  currentAmount: number;
+  currentAmount: number | null;
   derivedAmount: number;
 };
 
@@ -15,24 +16,25 @@ function fmt(n: number) {
 }
 
 export default function WeeklyBudgetRowForm({
-  weekStart,
+  periodStart,
+  periodEnd,
   categoryId,
   currentAmount,
   derivedAmount,
 }: Props) {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(String(currentAmount || ""));
+  const [value, setValue] = useState(currentAmount == null ? "" : String(currentAmount));
   const [isPending, startTransition] = useTransition();
 
   function handleSave() {
     startTransition(async () => {
-      await upsertWeeklyBudget(weekStart, categoryId, Number(value) || 0);
+      await upsertWeeklyBudgetPeriod(periodStart, periodEnd, categoryId, Number(value) || 0);
       setEditing(false);
     });
   }
 
   function handleCancel() {
-    setValue(String(currentAmount || ""));
+    setValue(currentAmount == null ? "" : String(currentAmount));
     setEditing(false);
   }
 
@@ -40,7 +42,7 @@ export default function WeeklyBudgetRowForm({
     return (
       <div className="flex items-center justify-end gap-1">
         <span className="tabular-nums text-gray-500 text-xs">
-          {currentAmount > 0 ? fmt(currentAmount) : <span className="text-gray-400">参考{fmt(derivedAmount)}</span>}
+          {currentAmount != null ? fmt(currentAmount) : <span className="text-gray-400">参考{fmt(derivedAmount)}</span>}
         </span>
         <button
           onClick={() => setEditing(true)}
