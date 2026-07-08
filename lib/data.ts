@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import type { Budget, Category, CreditSettlement, FixedExpense, FixedExpenseLog, Transaction } from "@/types/database";
+import type { Budget, Category, CreditSettlement, FeatureRequest, FixedExpense, FixedExpenseLog, Transaction } from "@/types/database";
 import { getWeekBudgetPeriods } from "@/lib/dateUtils";
 
 export type PaceData = {
@@ -1028,4 +1028,29 @@ export async function hasWeeklyBudget(weekStart: string): Promise<boolean> {
     .limit(1);
   if (error) throw error;
   return ((data ?? []) as unknown[]).length > 0;
+}
+
+export async function getFeatureRequests(): Promise<FeatureRequest[]> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from("feature_requests") as any)
+    .select("*")
+    .order("votes", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error && error.code !== "42P01") throw error;
+  return (data ?? []) as FeatureRequest[];
+}
+
+export async function getFeatureRequestSuggestions(limit = 8): Promise<Pick<FeatureRequest, "id" | "title" | "category" | "votes">[]> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from("feature_requests") as any)
+    .select("id, title, category, votes")
+    .order("votes", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error && error.code !== "42P01") throw error;
+  return (data ?? []) as Pick<FeatureRequest, "id" | "title" | "category" | "votes">[];
 }

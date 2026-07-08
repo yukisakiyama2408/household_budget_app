@@ -1,6 +1,8 @@
 export type TransactionType = "income" | "expense";
 export type PayMethod = "Credit" | "Cash";
 export type CategoryType = "income" | "expense" | "both";
+export type FeatureRequestStatus = "検討中" | "次に対応" | "対応済み";
+export type FeatureRequestCategory = "収支入力" | "予算" | "分析" | "通知" | "インポート" | "設定" | "その他";
 
 export type Category = {
   id: number;
@@ -69,6 +71,19 @@ export type FixedExpenseLog = {
   applied_at: string;
 };
 
+export type FeatureRequest = {
+  id: number;
+  title: string;
+  detail: string;
+  category: FeatureRequestCategory;
+  status: FeatureRequestStatus;
+  votes: number;
+  comments_count: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -86,6 +101,15 @@ export type Database = {
         Row: Budget;
         Insert: Omit<Budget, "id">;
         Update: Partial<Omit<Budget, "id">>;
+      };
+      feature_requests: {
+        Row: FeatureRequest;
+        Insert: Omit<FeatureRequest, "id" | "created_at" | "updated_at" | "comments_count"> & {
+          comments_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<FeatureRequest, "id" | "created_at">>;
       };
     };
   };
