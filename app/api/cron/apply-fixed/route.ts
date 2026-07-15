@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  const result = await applyFixedExpenses(year, month);
+  const result = await applyFixedExpenses(year, month, { admin: true });
 
   revalidatePath("/");
   revalidatePath("/transactions");

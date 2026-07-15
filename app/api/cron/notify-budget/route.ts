@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import webpush from "web-push";
-import { createClient } from "@/utils/supabase/server";
-import { hasMonthlyBudget, hasWeeklyBudget } from "@/lib/data";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { getCurrentWeekStart } from "@/lib/dateUtils";
 
 export async function GET(request: Request) {
@@ -28,11 +27,30 @@ export async function GET(request: Request) {
   }
 
   const weekStart = getCurrentWeekStart();
-  const checks = await Promise.all([
-    isMonthStart ? hasMonthlyBudget(year, month) : Promise.resolve(true),
-    isWeekStart ? hasWeeklyBudget(weekStart) : Promise.resolve(true),
+  const supabase = createAdminClient();
+  const weekStartDate = new Date(`${weekStart}T00:00:00`);
+  weekStartDate.setDate(weekStartDate.getDate() + 6);
+  const weekEnd = `${weekStartDate.getFullYear()}-${String(weekStartDate.getMonth() + 1).padStart(2, "0")}-${String(weekStartDate.getDate()).padStart(2, "0")}`;
+  const [monthlyResult, weeklyResult] = await Promise.all([
+    isMonthStart
+      ? supabase.from("budgets").select("id").eq("year", year).eq("month", month).limit(1)
+      : Promise.resolve({ data: [{}], error: null }),
+    isWeekStart
+      ? (supabase.from("weekly_budget_periods") as any)
+          .select("category_id")
+          .gte("period_start", weekStart)
+          .lte("period_end", weekEnd)
+          .limit(1)
+      : Promise.resolve({ data: [{}], error: null }),
   ]);
-  const [monthlyOk, weeklyOk] = checks;
+  if (monthlyResult.error || weeklyResult.error) {
+    return NextResponse.json(
+      { error: monthlyResult.error?.message ?? weeklyResult.error?.message },
+      { status: 500 }
+    );
+  }
+  const monthlyOk = (monthlyResult.data ?? []).length > 0;
+  const weeklyOk = (weeklyResult.data ?? []).length > 0;
 
   const notifications: { title: string; body: string; url: string }[] = [];
   if (isMonthStart && !monthlyOk) {
@@ -56,7 +74,6 @@ export async function GET(request: Request) {
 
   type PushSub = { endpoint: string; p256dh: string; auth: string };
 
-  const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rawSubs, error } = await (supabase.from("push_subscriptions") as any)
     .select("endpoint, p256dh, auth");

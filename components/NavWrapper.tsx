@@ -1,8 +1,13 @@
 import { getFeatureRequestSuggestions, hasMonthlyBudget, hasWeeklyBudget } from "@/lib/data";
 import { getCurrentWeekStart } from "@/lib/dateUtils";
 import Nav from "./Nav";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function NavWrapper() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims) return null;
+
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;

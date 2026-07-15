@@ -3,6 +3,7 @@ import PushSubscribeButton from "@/components/push/PushSubscribeButton";
 import CategoryManager from "@/components/categories/CategoryManager";
 import ApplyFixedExpensesButton from "@/components/fixed/ApplyFixedExpensesButton";
 import { getCategories, getFixedExpenseLogs, getFixedExpenses } from "@/lib/data";
+import LogoutButton from "@/components/auth/LogoutButton";
 
 function fmt(n: number) {
   return `¥${Math.abs(n).toLocaleString("ja-JP")}`;
@@ -34,6 +35,14 @@ export default async function SettingsPage() {
           カテゴリ、固定費、通知など、アプリの運用に関わる項目を管理します。
         </p>
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold text-gray-700">アカウント</h2>
+        <div className="flex items-center justify-between gap-4 rounded-lg border bg-white p-4">
+          <p className="text-sm text-gray-500">この端末のログインセッションを終了します。</p>
+          <LogoutButton />
+        </div>
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-gray-700">カテゴリ</h2>

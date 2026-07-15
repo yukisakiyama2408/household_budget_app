@@ -1,11 +1,13 @@
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import type { FixedExpense } from "@/types/database";
 
 export async function applyFixedExpenses(
   year: number,
-  month: number
+  month: number,
+  options?: { admin?: boolean }
 ): Promise<{ applied: number; skipped: number }> {
-  const supabase = await createClient();
+  const supabase = options?.admin ? createAdminClient() : await createClient();
 
   const { data: fixedData, error: fixedError } = await supabase
     .from("fixed_expenses")
