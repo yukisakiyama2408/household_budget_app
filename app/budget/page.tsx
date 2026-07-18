@@ -21,7 +21,6 @@ import {
   getCategories,
   getFixedExpenses,
   getFixedExpenseLogs,
-  hasMonthlyBudget,
   getTransactions,
 } from "@/lib/data";
 import { getWeekBudgetPeriods, getWeeksOfMonth, getCurrentWeekStart } from "@/lib/dateUtils";
@@ -63,12 +62,7 @@ export default async function BudgetPage({ searchParams }: Props) {
 
   const selectedWeekPeriods = getWeekBudgetPeriods(weekStart, weekEnd);
 
-  const nowYear = now.getFullYear();
-  const nowMonth = now.getMonth() + 1;
-  const currentMonthHasBudget = isBudgetTab ? await hasMonthlyBudget(nowYear, nowMonth) : false;
-  const geminiYear = currentMonthHasBudget ? (nowMonth === 12 ? nowYear + 1 : nowYear) : nowYear;
-  const geminiMonth = currentMonthHasBudget ? (nowMonth === 12 ? 1 : nowMonth + 1) : nowMonth;
-  const geminiMonthLabel = `${geminiYear}年${geminiMonth}月`;
+  const selectedMonthLabel = `${year}年${month}月`;
 
   const [goalsWithProgress, allMonthlyItems, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
     isBudgetTab ? getGoalsWithProgress() : Promise.resolve([]),
@@ -180,7 +174,7 @@ export default async function BudgetPage({ searchParams }: Props) {
                   categories={weeklyItems.map((item) => ({ id: item.category.id, name: item.category.name }))}
                 />
               ) : (
-                <BudgetReviewTools view={view} />
+                <BudgetReviewTools view={view} targetLabel={selectedMonthLabel} />
               )}
 
               {view === "monthly" && <div className="border-t pt-4">
@@ -201,7 +195,7 @@ export default async function BudgetPage({ searchParams }: Props) {
                   </p>
                 </div>
                 <div className="mt-3">
-                  <CombinedBudgetImport year={geminiYear} month={geminiMonth} monthLabel={geminiMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
+                  <CombinedBudgetImport year={year} month={month} monthLabel={selectedMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
                 </div>
               </div>}
             </div>

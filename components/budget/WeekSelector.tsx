@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getWeeksOfMonth } from "@/lib/dateUtils";
+import { getCurrentWeekStart, getWeeksOfMonth } from "@/lib/dateUtils";
 
 type Props = {
   year: number;
@@ -13,7 +13,8 @@ type Props = {
 
 export default function WeekSelector({ year, month, weekStart }: Props) {
   const router = useRouter();
-  const weeks = getWeeksOfMonth(year, month);
+  const currentWeekStart = getCurrentWeekStart();
+  const weeks = getWeeksOfMonth(year, month).filter((week) => week.start >= currentWeekStart);
   const currentIndex = weeks.findIndex((w) => w.start === weekStart);
   const current = weeks[currentIndex] ?? weeks[0];
 
@@ -30,17 +31,28 @@ export default function WeekSelector({ year, month, weekStart }: Props) {
         size="icon"
         onClick={() => navigate(currentIndex - 1)}
         disabled={currentIndex <= 0}
+        aria-label="前の週"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="text-sm font-medium w-36 text-center tabular-nums">
-        {current?.label ?? ""}
-      </span>
+      <label>
+        <span className="sr-only">予算を設定する週</span>
+        <select
+          value={current?.start ?? ""}
+          onChange={(event) => navigate(weeks.findIndex((week) => week.start === event.target.value))}
+          className="h-9 w-40 rounded-md border bg-white px-3 text-center text-sm font-medium text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+        >
+          {weeks.map((week) => (
+            <option key={week.start} value={week.start}>{week.label}</option>
+          ))}
+        </select>
+      </label>
       <Button
         variant="outline"
         size="icon"
         onClick={() => navigate(currentIndex + 1)}
         disabled={currentIndex >= weeks.length - 1}
+        aria-label="次の週"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>

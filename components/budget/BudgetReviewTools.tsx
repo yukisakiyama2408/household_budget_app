@@ -6,6 +6,7 @@ import { TEMPLATES } from "@/components/insights/ChatGPTPrompt";
 
 type Props = {
   view: "monthly" | "weekly";
+  targetLabel?: string;
 };
 
 const REVIEW_CONFIG = {
@@ -21,7 +22,7 @@ const REVIEW_CONFIG = {
   },
 } as const;
 
-export default function BudgetReviewTools({ view }: Props) {
+export default function BudgetReviewTools({ view, targetLabel }: Props) {
   const [copied, setCopied] = useState(false);
   const config = REVIEW_CONFIG[view];
   const template = TEMPLATES.find((t) => t.id === config.templateId);
@@ -30,7 +31,10 @@ export default function BudgetReviewTools({ view }: Props) {
   const selectedTemplate = template;
 
   async function copyPrompt() {
-    await navigator.clipboard.writeText(selectedTemplate.text);
+    const targetInstruction = targetLabel
+      ? `\n\n予算の設定対象は「${targetLabel}」です。相対表現ではなく、この期間の予算案として出力してください。`
+      : "";
+    await navigator.clipboard.writeText(`${selectedTemplate.text}${targetInstruction}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -43,7 +47,9 @@ export default function BudgetReviewTools({ view }: Props) {
     <div className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="mt-1 text-sm font-medium text-gray-700">{config.title}</p>
+          <p className="mt-1 text-sm font-medium text-gray-700">
+            {targetLabel ? `${targetLabel}の予算案を作る` : config.title}
+          </p>
           <p className="mt-1 text-xs leading-5 text-gray-500">{config.description}</p>
         </div>
         <div className="flex flex-wrap gap-2 sm:justify-end">
