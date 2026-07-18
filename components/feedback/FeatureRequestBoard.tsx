@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowUp,
   CheckCircle2,
@@ -10,7 +11,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
-import { voteFeatureRequest } from "@/app/actions/feature-requests";
+import { updateFeatureRequestStatus, voteFeatureRequest } from "@/app/actions/feature-requests";
 import type { FeatureRequest, FeatureRequestStatus } from "@/types/database";
 
 const statusStyles: Record<FeatureRequestStatus, string> = {
@@ -18,6 +19,8 @@ const statusStyles: Record<FeatureRequestStatus, string> = {
   次に対応: "bg-indigo-50 text-indigo-700",
   対応済み: "bg-teal-50 text-teal-700",
 };
+
+const statuses: FeatureRequestStatus[] = ["検討中", "次に対応", "対応済み"];
 
 function getStatusIcon(status: FeatureRequestStatus) {
   if (status === "対応済み") return <CheckCircle2 className="h-4 w-4" />;
@@ -32,9 +35,12 @@ function formatDate(value: string) {
 }
 
 export default function FeatureRequestBoard({ requests: initialRequests }: { requests: FeatureRequest[] }) {
+  const router = useRouter();
   const [requests, setRequests] = useState(initialRequests);
   const [query, setQuery] = useState("");
   const [votingIds, setVotingIds] = useState<number[]>([]);
+  const [updatingStatusIds, setUpdatingStatusIds] = useState<number[]>([]);
+  const [statusErrors, setStatusErrors] = useState<Record<number, string>>({});
 
   const visibleRequests = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -66,6 +72,35 @@ export default function FeatureRequestBoard({ requests: initialRequests }: { req
       );
     } finally {
       setVotingIds((current) => current.filter((votingId) => votingId !== id));
+    }
+  }
+
+  async function changeStatus(id: number, status: FeatureRequestStatus) {
+    if (updatingStatusIds.includes(id)) return;
+    const previousStatus = requests.find((request) => request.id === id)?.status;
+    if (!previousStatus || previousStatus === status) return;
+
+    setUpdatingStatusIds((current) => [...current, id]);
+    setStatusErrors((current) => ({ ...current, [id]: "" }));
+    setRequests((current) =>
+      current.map((request) => request.id === id ? { ...request, status } : request)
+    );
+
+    try {
+      await updateFeatureRequestStatus(id, status);
+      router.refresh();
+    } catch {
+      setRequests((current) =>
+        current.map((request) =>
+          request.id === id ? { ...request, status: previousStatus } : request
+        )
+      );
+      setStatusErrors((current) => ({
+        ...current,
+        [id]: "ステータスを更新できませんでした。",
+      }));
+    } finally {
+      setUpdatingStatusIds((current) => current.filter((requestId) => requestId !== id));
     }
   }
 
@@ -112,11 +147,19 @@ export default function FeatureRequestBoard({ requests: initialRequests }: { req
 
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold ${statusStyles[request.status]}`}
-                >
+                <span className={`inline-flex items-center gap-1 rounded-full pl-2 text-xs font-bold ${statusStyles[request.status]}`}>
                   {getStatusIcon(request.status)}
-                  {request.status}
+                  <label>
+                    <span className="sr-only">{request.title}のステータス</span>
+                    <select
+                      value={request.status}
+                      onChange={(event) => changeStatus(request.id, event.target.value as FeatureRequestStatus)}
+                      disabled={updatingStatusIds.includes(request.id)}
+                      className="cursor-pointer bg-transparent py-1 pl-0.5 pr-1 font-bold outline-none disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                    </select>
+                  </label>
                 </span>
                 <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">
                   {request.category}
@@ -125,6 +168,11 @@ export default function FeatureRequestBoard({ requests: initialRequests }: { req
                   {request.created_by}・{formatDate(request.created_at)}
                 </span>
               </div>
+              {statusErrors[request.id] && (
+                <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+                  {statusErrors[request.id]}
+                </p>
+              )}
               <h3 className="mt-2 text-sm font-bold text-gray-950">{request.title}</h3>
               {request.detail && (
                 <p className="mt-1 text-sm leading-6 text-gray-600">{request.detail}</p>

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
-import type { FeatureRequestCategory } from "@/types/database";
+import type { FeatureRequestCategory, FeatureRequestStatus } from "@/types/database";
 
 const allowedCategories: FeatureRequestCategory[] = [
   "収支入力",
@@ -13,6 +13,8 @@ const allowedCategories: FeatureRequestCategory[] = [
   "設定",
   "その他",
 ];
+
+const allowedStatuses: FeatureRequestStatus[] = ["検討中", "次に対応", "対応済み"];
 
 export type FeatureRequestActionState = {
   ok: boolean;
@@ -67,6 +69,29 @@ export async function voteFeatureRequest(id: number): Promise<void> {
   const { error } = await (supabase.rpc as any)("increment_feature_request_votes", {
     request_id: id,
   });
+
+  if (error) throw error;
+  revalidatePath("/feature-requests");
+}
+
+export async function updateFeatureRequestStatus(
+  id: number,
+  status: FeatureRequestStatus
+): Promise<void> {
+  if (!Number.isInteger(id) || id <= 0 || !allowedStatuses.includes(status)) {
+    throw new Error("ステータスが不正です。");
+  }
+
+  const supabase = await createClient();
+  const { data: authData, error: authError } = await supabase.auth.getClaims();
+  if (authError || !authData?.claims) {
+    throw new Error("ログインが必要です。");
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("feature_requests") as any)
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id);
 
   if (error) throw error;
   revalidatePath("/feature-requests");
