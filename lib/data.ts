@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import type { Budget, Category, CreditSettlement, FeatureRequest, FixedExpense, FixedExpenseLog, Transaction } from "@/types/database";
+import type { Budget, Category, CreditSettlement, FeatureRequest, FixedExpense, FixedExpenseLog, Transaction, WishlistItem } from "@/types/database";
 import { getWeekBudgetPeriods } from "@/lib/dateUtils";
 
 export type PaceData = {
@@ -614,6 +614,24 @@ export async function getCurrentBalance(): Promise<number> {
   );
 
   return txBalance - settlementTotal;
+}
+
+const wishlistPriorityOrder = { next: 0, high: 1, medium: 2, low: 3, "": 4 } as const;
+
+export async function getWishlistItems(): Promise<WishlistItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("wishlist_items")
+    .select("*")
+    .is("purchased_at", null)
+    .order("created_at", { ascending: false });
+  if (error) {
+    if (error.code === "42P01") return [];
+    throw error;
+  }
+  return ((data ?? []) as WishlistItem[]).sort(
+    (a, b) => wishlistPriorityOrder[a.priority] - wishlistPriorityOrder[b.priority]
+  );
 }
 
 export async function getTransactionById(id: number) {

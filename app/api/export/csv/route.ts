@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getTransactions,
-  getGoalsWithProgress,
+  getCurrentBalance,
+  getWishlistItems,
   getBudgetData,
   getWeeklyBudgetData,
   getYearlyTrend,
@@ -52,22 +53,20 @@ function buildTxRows(transactions: TransactionWithCategory[]): string[] {
   );
 }
 
-function buildGoalSection(goals: Awaited<ReturnType<typeof getGoalsWithProgress>>): string[] {
-  const savingsGoals = goals.filter((g) => g.type === "savings");
-  if (savingsGoals.length === 0) return [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+function buildWishlistSection(
+  items: Awaited<ReturnType<typeof getWishlistItems>>,
+  balance: number
+): string[] {
+  if (items.length === 0) return [];
   return [
     "",
-    "# 貯金目標の進捗",
-    "目標名,目標額,現在残高,達成率(%),期限,残り日数",
-    ...savingsGoals.map((g) => {
-      const pct = g.target_amount > 0 ? Math.round((g.currentAmount / g.target_amount) * 100) : 0;
-      const daysLeft = g.deadline
-        ? Math.ceil((new Date(g.deadline).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-        : "";
-      return [escapeCsv(g.title), g.target_amount, g.currentAmount, pct, g.deadline ?? "", daysLeft].join(",");
-    }),
+    "# 欲しいものリスト",
+    "タイトル,金額,現在残高,購入可能度(%),優先度,メモ",
+    ...items.map((item) => [
+      escapeCsv(item.title), item.price, balance,
+      item.price > 0 ? Math.round((balance / item.price) * 100) : 0,
+      item.priority, escapeCsv(item.memo),
+    ].join(",")),
   ];
 }
 
@@ -166,10 +165,11 @@ export async function GET(req: NextRequest) {
     trendBase.setDate(now.getDate() - 21);
     const trendStart = getWeekBounds(trendBase).dateFrom;
 
-    const [allTx, weeklyBudgetItems, goals, targetMonthlyBudgetItems] = await Promise.all([
+    const [allTx, weeklyBudgetItems, wishlistItems, balance, targetMonthlyBudgetItems] = await Promise.all([
       getTransactions({ dateFrom: trendStart, dateTo: thisWeek.dateTo }),
       getWeeklyBudgetData(y, m, thisWeek.dateFrom, thisWeek.dateTo),
-      getGoalsWithProgress(),
+      getWishlistItems(),
+      getCurrentBalance(),
       getBudgetData(targetYear, targetMonth),
     ]);
 
@@ -252,7 +252,7 @@ export async function GET(req: NextRequest) {
         monthBudgetTotal > 0 ? Math.round((monthActualTotal / monthBudgetTotal) * 100) : ""].join(",")
     );
 
-    lines.push(...buildGoalSection(goals));
+    lines.push(...buildWishlistSection(wishlistItems, balance));
     return toCsvResponse(lines, `budget-${targetStart}_${targetEnd}`);
   }
 
@@ -270,10 +270,11 @@ export async function GET(req: NextRequest) {
     const yy2 = m - 2 <= 0 ? y - 1 : y;
     const twoMonthsAgoStart = `${yy2}-${pad(mm2)}-01`;
 
-    const [allTx, budgetItems, goals] = await Promise.all([
+    const [allTx, budgetItems, wishlistItems, balance] = await Promise.all([
       getTransactions({ dateFrom: twoMonthsAgoStart, dateTo: thisMonthEnd }),
       getBudgetData(y, m),
-      getGoalsWithProgress(),
+      getWishlistItems(),
+      getCurrentBalance(),
     ]);
 
     const prevMonthTx = allTx.filter((t) => t.date >= prevMonthStart && t.date <= prevMonthEnd);
@@ -343,7 +344,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    lines.push(...buildGoalSection(goals));
+    lines.push(...buildWishlistSection(wishlistItems, balance));
     return toCsvResponse(lines, `monthly-${y}-${pad(m)}`);
   }
 
@@ -352,12 +353,13 @@ export async function GET(req: NextRequest) {
   const isMonthPeriod = period === "current" || period === "prev";
   const isLongPeriod = period === "3months" || period === "year" || period === "all";
 
-  const [transactions, goals] = await Promise.all([
+  const [transactions, wishlistItems, balance] = await Promise.all([
     getTransactions({
       ...(dateFrom ? { dateFrom } : {}),
       ...(dateTo ? { dateTo } : {}),
     }),
-    getGoalsWithProgress(),
+    getWishlistItems(),
+    getCurrentBalance(),
   ]);
 
   const lines: string[] = [];
@@ -431,6 +433,6 @@ export async function GET(req: NextRequest) {
     lines.push(...buildTxRows(transactions));
   }
 
-  lines.push(...buildGoalSection(goals));
+  lines.push(...buildWishlistSection(wishlistItems, balance));
   return toCsvResponse(lines, label);
 }

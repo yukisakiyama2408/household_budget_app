@@ -3,6 +3,19 @@ export type PayMethod = "Credit" | "Cash";
 export type CategoryType = "income" | "expense" | "both";
 export type FeatureRequestStatus = "検討中" | "次に対応" | "対応済み";
 export type FeatureRequestCategory = "収支入力" | "予算" | "分析" | "通知" | "インポート" | "設定" | "その他";
+export type WishlistPriority = "" | "next" | "high" | "medium" | "low";
+
+export type WishlistItem = {
+  id: number;
+  title: string;
+  price: number;
+  url: string;
+  memo: string;
+  priority: WishlistPriority;
+  purchased_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export type Category = {
   id: number;
@@ -110,6 +123,15 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Omit<FeatureRequest, "id" | "created_at">>;
+      };
+      wishlist_items: {
+        Row: WishlistItem;
+        Insert: Omit<WishlistItem, "id" | "created_at" | "updated_at" | "purchased_at"> & {
+          purchased_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<WishlistItem, "id" | "created_at">>;
       };
     };
   };

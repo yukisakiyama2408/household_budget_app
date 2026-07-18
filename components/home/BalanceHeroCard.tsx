@@ -37,11 +37,11 @@ export default function BalanceHeroCard({ balance, year, month, dateLabel }: Pro
         </div>
       </div>
 
-      <div className="text-[13px] opacity-90 mb-1.5">現在の残高</div>
+      <div className="mb-1.5 whitespace-nowrap text-[13px] opacity-90">現在の残高</div>
 
       <div
-        className="tabular-nums leading-none mb-4 break-all"
-        style={{ fontSize: "clamp(40px,8vw,78px)", fontWeight: 700, letterSpacing: "-2.8px" }}
+        className="mb-4 whitespace-nowrap tabular-nums leading-none"
+        style={{ fontSize: "clamp(38px,5vw,64px)", fontWeight: 700, letterSpacing: "-2.4px" }}
       >
         {isNegative ? "-" : ""}
         {fmt(balance)}

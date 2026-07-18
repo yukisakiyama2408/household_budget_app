@@ -19,7 +19,7 @@ function formatPeriod(start: string, end: string): string {
 function createPrompt(start: string, end: string): string {
   const period = formatPeriod(start, end);
   return `添付の家計簿CSVを元に、直近の支出を振り返り、${period}の予算を設定してください。
-CSVの末尾に「# 貯金目標の進捗」セクションが含まれている場合は、その達成状況も踏まえて調整してください。
+CSVの末尾に「# 欲しいものリスト」セクションが含まれている場合は、その優先度と購入可能度も踏まえて調整してください。
 
 対象期間が属する月の月次予算と残予算、直近の支出実績を確認した上で、以下の形式で出力してください。
 金額はアプリへそのまま登録できるよう明記してください。

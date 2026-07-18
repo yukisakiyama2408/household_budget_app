@@ -9,15 +9,12 @@ import BudgetTransactionList from "@/components/budget/BudgetTransactionList";
 import BudgetReviewTools from "@/components/budget/BudgetReviewTools";
 import WeeklyBudgetReviewFlow from "@/components/budget/WeeklyBudgetReviewFlow";
 import PageTabs from "@/components/PageTabs";
-import GoalCard from "@/components/goals/GoalCard";
-import GoalForm from "@/components/goals/GoalForm";
 import ApplyFixedExpensesButton from "@/components/fixed/ApplyFixedExpensesButton";
 import CategoryManager from "@/components/categories/CategoryManager";
 import Link from "next/link";
 import {
   getBudgetData,
   getWeeklyBudgetData,
-  getGoalsWithProgress,
   getCategories,
   getFixedExpenses,
   getFixedExpenseLogs,
@@ -64,8 +61,7 @@ export default async function BudgetPage({ searchParams }: Props) {
 
   const selectedMonthLabel = `${year}年${month}月`;
 
-  const [goalsWithProgress, allMonthlyItems, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
-    isBudgetTab ? getGoalsWithProgress() : Promise.resolve([]),
+  const [allMonthlyItems, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
     isBudgetTab ? getBudgetData(year, month) : Promise.resolve([]),
     (isBudgetTab || isCategoriesTab) ? getCategories() : Promise.resolve([]),
     isFixedTab ? getFixedExpenses() : Promise.resolve([]),
@@ -116,7 +112,6 @@ export default async function BudgetPage({ searchParams }: Props) {
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">予算管理</h1>
-        {isBudgetTab && <GoalForm categories={categories} />}
         {isFixedTab && (
           <Link href="/fixed/new" className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors">
             + 新規登録
@@ -223,19 +218,6 @@ export default async function BudgetPage({ searchParams }: Props) {
             title={view === "weekly" ? `取引明細（${weekRange?.label ?? ""}）` : `取引明細（${year}年${month}月）`}
           />
 
-          {/* 目標 */}
-          <section className="space-y-3">
-            <h2 className="text-base font-semibold text-gray-700">目標</h2>
-            {goalsWithProgress.length === 0 ? (
-              <div className="border rounded-md p-4 text-sm text-gray-400 text-center">
-                目標が設定されていません。右上の「目標を追加」から作成できます。
-              </div>
-            ) : (
-              (goalsWithProgress as Awaited<ReturnType<typeof getGoalsWithProgress>>).map((goal) => (
-                <GoalCard key={goal.id} goal={goal} categories={categories} />
-              ))
-            )}
-          </section>
         </div>
       )}
 

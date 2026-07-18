@@ -3,14 +3,14 @@ import {
   getCurrentBalance,
   getBudgetData,
   getTransactions,
-  getGoalsWithProgress,
+  getWishlistItems,
   getWeeklyBudgetData,
   hasMonthlyBudget,
   hasWeeklyBudget,
 } from "@/lib/data";
 import BudgetAlertBanner from "@/components/home/BudgetAlertBanner";
 import BalanceHeroCard from "@/components/home/BalanceHeroCard";
-import GoalHeroCard from "@/components/home/GoalHeroCard";
+import WishlistHeroCard from "@/components/home/WishlistHeroCard";
 import BudgetTransactionsSection from "@/components/home/BudgetTransactionsSection";
 
 const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
@@ -52,7 +52,7 @@ export default async function HomePage() {
     balance,
     budgetItems,
     recentTx,
-    goals,
+    wishlistItems,
     allWeeklyItems,
     monthlyRegistered,
     weeklyRegistered,
@@ -60,7 +60,7 @@ export default async function HomePage() {
     getCurrentBalance(),
     getBudgetData(year, month),
     getTransactions({ limit: 8, dateTo: fmtDate(now) }),
-    getGoalsWithProgress(),
+    getWishlistItems(),
     getWeeklyBudgetData(year, month, currentWeek.start, currentWeek.end),
     hasMonthlyBudget(year, month),
     hasWeeklyBudget(currentWeek.start),
@@ -131,14 +131,14 @@ export default async function HomePage() {
       />
 
       {/* Bento hero grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <BalanceHeroCard
           balance={balance}
           year={year}
           month={month}
           dateLabel={dateLabel}
         />
-        <GoalHeroCard goals={goals} />
+        <WishlistHeroCard items={wishlistItems} balance={balance} />
       </div>
 
       {/* Budget tabs + transactions (shared category filter state) */}
