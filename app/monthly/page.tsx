@@ -10,7 +10,6 @@ import WeekSelector from "@/components/dashboard/WeekSelector";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import TrendLineChart from "@/components/dashboard/TrendLineChart";
 import PageTabs from "@/components/PageTabs";
-import InsightCards from "@/components/insights/InsightCards";
 import CsvExport from "@/components/insights/CsvExport";
 import ChatGPTPrompt from "@/components/insights/ChatGPTPrompt";
 import {
@@ -21,7 +20,6 @@ import {
   getDailyData,
   getWeeklyData,
   getDailySpendingTrend,
-  getBudgetData,
 } from "@/lib/data";
 
 type View = "monthly" | "weekly" | "yearly" | "daily";
@@ -43,24 +41,9 @@ export default async function DashboardPage({ searchParams }: Props) {
   const now = new Date();
 
   if (isInsightsTab) {
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const prevMonth = month === 1 ? 12 : month - 1;
-    const prevYear = month === 1 ? year - 1 : year;
-
-    const [currentItems, prevBreakdown] = await Promise.all([
-      getBudgetData(year, month),
-      getCategoryBreakdown(prevYear, prevMonth),
-    ]);
-    const totalExpense = currentItems.reduce((s, i) => s + i.actualAmount, 0);
-
     return (
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <PageTabs tabs={ANALYSIS_TABS} currentTab={tab} basePath="/monthly" />
-        <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-700">今月のアラート・気づき</h2>
-          <InsightCards currentItems={currentItems} prevBreakdown={prevBreakdown} totalExpense={totalExpense} />
-        </section>
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-gray-700">データエクスポート</h2>
           <Card>
