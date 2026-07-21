@@ -141,6 +141,96 @@ export async function GET(req: NextRequest) {
   const y = now.getFullYear();
   const m = now.getMonth() + 1;
 
+  if (period === "custom") {
+    const dateFrom = searchParams.get("dateFrom") ?? "";
+    const dateTo = searchParams.get("dateTo") ?? "";
+    const requestedView = searchParams.get("analysisView");
+    const analysisView = ["monthly", "weekly", "yearly"].includes(requestedView ?? "")
+      ? requestedView
+      : "monthly";
+    const validDate = /^\d{4}-\d{2}-\d{2}$/;
+    if (!validDate.test(dateFrom) || !validDate.test(dateTo) || dateFrom > dateTo) {
+      return NextResponse.json({ error: "分析対象期間が不正です。" }, { status: 400 });
+    }
+
+    const [transactions, wishlistItems, balance] = await Promise.all([
+      getTransactions({ dateFrom, dateTo }),
+      getWishlistItems(),
+      getCurrentBalance(),
+    ]);
+    const income = transactions
+      .filter((transaction) => transaction.type === "income")
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
+    const expenses = transactions.filter((transaction) => transaction.type === "expense");
+    const totalExpense = expenses.reduce((sum, transaction) => sum + transaction.amount, 0);
+    const lines = [
+      `# 対象期間: ${dateFrom}〜${dateTo}`,
+      "",
+      "## 収支サマリー",
+      "収入,支出,収支",
+      [income, totalExpense, income - totalExpense].join(","),
+      "",
+      "## 取引明細",
+      TX_HEADER,
+      ...buildTxRows(transactions),
+      "",
+      "## カテゴリ別集計",
+      "カテゴリ,支出合計,割合(%)",
+    ];
+    const categoryTotals = new Map<string, number>();
+    for (const transaction of expenses) {
+      const category = transaction.categories?.name ?? "未分類";
+      categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + transaction.amount);
+    }
+    for (const [category, amount] of [...categoryTotals].sort((a, b) => b[1] - a[1])) {
+      lines.push([escapeCsv(category), amount, totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0].join(","));
+    }
+
+    if (analysisView === "weekly" || analysisView === "monthly") {
+      const dailyTotals = new Map<string, { income: number; expense: number }>();
+      for (const transaction of transactions) {
+        const current = dailyTotals.get(transaction.date) ?? { income: 0, expense: 0 };
+        current[transaction.type] += transaction.amount;
+        dailyTotals.set(transaction.date, current);
+      }
+      lines.push("", "## 日別収支推移", "日付,収入,支出,収支");
+      for (const [date, totals] of [...dailyTotals].sort(([a], [b]) => a.localeCompare(b))) {
+        lines.push([date, totals.income, totals.expense, totals.income - totals.expense].join(","));
+      }
+    }
+
+    if (analysisView === "monthly") {
+      const [year, month] = dateFrom.split("-").map(Number);
+      const budgetItems = await getBudgetData(year, month);
+      lines.push("", "## 月次予算と実績", "カテゴリ,予算,実績,残予算,消化率(%)");
+      for (const item of budgetItems) {
+        if (item.budgetAmount === 0 && item.actualAmount === 0) continue;
+        lines.push([
+          escapeCsv(item.category.name), item.budgetAmount, item.actualAmount,
+          item.budgetAmount - item.actualAmount,
+          item.budgetAmount > 0 ? Math.round((item.actualAmount / item.budgetAmount) * 100) : "",
+        ].join(","));
+      }
+    }
+
+    if (analysisView === "yearly") {
+      const monthlyTotals = new Map<string, { income: number; expense: number }>();
+      for (const transaction of transactions) {
+        const month = transaction.date.slice(0, 7);
+        const current = monthlyTotals.get(month) ?? { income: 0, expense: 0 };
+        current[transaction.type] += transaction.amount;
+        monthlyTotals.set(month, current);
+      }
+      lines.push("", "## 月別収支推移", "月,収入,支出,収支");
+      for (const [month, totals] of [...monthlyTotals].sort(([a], [b]) => a.localeCompare(b))) {
+        lines.push([month, totals.income, totals.expense, totals.income - totals.expense].join(","));
+      }
+    }
+
+    lines.push(...buildWishlistSection(wishlistItems, balance));
+    return toCsvResponse(lines, `${dateFrom}_${dateTo}`);
+  }
+
   // ── 週次統合（ChatGPT用: 先週＋今週） ──────────────────
   if (period === "weekly") {
     const requestedTargetStart = searchParams.get("targetStart");

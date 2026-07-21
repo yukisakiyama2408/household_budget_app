@@ -1,13 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SummaryCards from "@/components/dashboard/SummaryCards";
-import MonthSelector from "@/components/dashboard/MonthSelector";
 import CategoryPieChart from "@/components/dashboard/CategoryPieChart";
 import CategoryTable from "@/components/dashboard/CategoryTable";
 import MonthlyBarChart from "@/components/dashboard/MonthlyBarChart";
-import YearSelector from "@/components/yearly/YearSelector";
 import DailyTable from "@/components/daily/DailyTable";
-import WeekSelector from "@/components/dashboard/WeekSelector";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
+import AnalysisPeriodSelector, { type AnalysisPeriodOption } from "@/components/dashboard/AnalysisPeriodSelector";
 import TrendLineChart from "@/components/dashboard/TrendLineChart";
 import PageTabs from "@/components/PageTabs";
 import CsvExport from "@/components/insights/CsvExport";
@@ -20,6 +18,7 @@ import {
   getDailyData,
   getWeeklyData,
   getDailySpendingTrend,
+  getTransactionDateBounds,
 } from "@/lib/data";
 
 type View = "monthly" | "weekly" | "yearly" | "daily";
@@ -30,20 +29,107 @@ const ANALYSIS_TABS = [
 ];
 
 type Props = {
-  searchParams: Promise<{ view?: string; month?: string; year?: string; week?: string; tab?: string }>;
+  searchParams: Promise<{ view?: string; period?: string; month?: string; year?: string; week?: string; tab?: string }>;
 };
+
+const pad = (value: number) => String(value).padStart(2, "0");
+const dateValue = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+function mondayOf(date: Date) {
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = monday.getDay();
+  monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
+  return monday;
+}
+
+function createMonthOptions(earliest: Date, now: Date): AnalysisPeriodOption[] {
+  const options: AnalysisPeriodOption[] = [];
+  const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+  const first = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
+  while (cursor >= first) {
+    options.push({ value: `${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}`, label: `${cursor.getFullYear()}年${cursor.getMonth() + 1}月` });
+    cursor.setMonth(cursor.getMonth() - 1);
+  }
+  return options;
+}
+
+function createWeekOptions(earliest: Date, now: Date): AnalysisPeriodOption[] {
+  const options: AnalysisPeriodOption[] = [];
+  const cursor = mondayOf(now);
+  const first = mondayOf(earliest);
+  while (cursor >= first) {
+    const end = new Date(cursor);
+    end.setDate(end.getDate() + 6);
+    const label = cursor.getFullYear() === end.getFullYear()
+      ? `${cursor.getFullYear()}/${cursor.getMonth() + 1}/${cursor.getDate()}〜${end.getMonth() + 1}/${end.getDate()}`
+      : `${cursor.getFullYear()}/${cursor.getMonth() + 1}/${cursor.getDate()}〜${end.getFullYear()}/${end.getMonth() + 1}/${end.getDate()}`;
+    options.push({ value: dateValue(cursor), label });
+    cursor.setDate(cursor.getDate() - 7);
+  }
+  return options;
+}
+
+function createYearOptions(earliest: Date, now: Date): AnalysisPeriodOption[] {
+  return Array.from({ length: now.getFullYear() - earliest.getFullYear() + 1 }, (_, index) => {
+    const year = now.getFullYear() - index;
+    return { value: String(year), label: `${year}年` };
+  });
+}
+
+function analysisTarget(view: View, value: string, label: string) {
+  if (view === "weekly") {
+    const start = new Date(`${value}T00:00:00`);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return { dateFrom: value, dateTo: dateValue(end), label };
+  }
+  if (view === "yearly") {
+    return { dateFrom: `${value}-01-01`, dateTo: `${value}-12-31`, label };
+  }
+  const [year, month] = value.split("-").map(Number);
+  return {
+    dateFrom: `${value}-01`,
+    dateTo: `${value}-${pad(new Date(year, month, 0).getDate())}`,
+    label,
+  };
+}
 
 export default async function DashboardPage({ searchParams }: Props) {
   const params = await searchParams;
   const tab = params.tab ?? "stats";
   const isInsightsTab = tab === "insights";
-  const view = (params.view ?? "monthly") as View;
+  const requestedView: View = ["monthly", "weekly", "yearly", "daily"].includes(params.view ?? "")
+    ? params.view as View
+    : "monthly";
+  const view: View = isInsightsTab && requestedView === "daily" ? "monthly" : requestedView;
   const now = new Date();
+
+  const dateBounds = await getTransactionDateBounds();
+  const earliest = dateBounds
+    ? new Date(`${dateBounds.earliest}T00:00:00`)
+    : new Date(now.getFullYear(), now.getMonth(), 1);
+  const periodOptions = view === "weekly"
+    ? createWeekOptions(earliest, now)
+    : view === "yearly"
+      ? createYearOptions(earliest, now)
+      : createMonthOptions(earliest, now);
+  const selectedPeriod = periodOptions.some((option) => option.value === params.period)
+    ? params.period!
+    : periodOptions[0].value;
+  const selectedPeriodLabel = periodOptions.find((option) => option.value === selectedPeriod)?.label ?? selectedPeriod;
+  const target = analysisTarget(view, selectedPeriod, selectedPeriodLabel);
 
   if (isInsightsTab) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-        <PageTabs tabs={ANALYSIS_TABS} currentTab={tab} basePath="/monthly" />
+        <PageTabs tabs={ANALYSIS_TABS} currentTab={tab} basePath="/monthly" preserveParams={{ view, period: selectedPeriod }} />
+        <div className="flex flex-col gap-3 rounded-lg border bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold text-gray-500">分析対象</p>
+            <div className="mt-2"><DashboardTabs activeView={view} excludeDaily /></div>
+          </div>
+          <AnalysisPeriodSelector value={selectedPeriod} options={periodOptions} />
+        </div>
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-gray-700">データエクスポート</h2>
           <Card>
@@ -51,7 +137,7 @@ export default async function DashboardPage({ searchParams }: Props) {
               <CardTitle className="text-sm font-medium text-gray-500">CSVダウンロード</CardTitle>
             </CardHeader>
             <CardContent>
-              <CsvExport />
+              <CsvExport target={target} analysisView={view as "monthly" | "weekly" | "yearly"} />
             </CardContent>
           </Card>
         </section>
@@ -62,7 +148,7 @@ export default async function DashboardPage({ searchParams }: Props) {
               <CardTitle className="text-sm font-medium text-gray-500">プロンプトテンプレート</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChatGPTPrompt />
+              <ChatGPTPrompt key={view} target={target} analysisView={view as "monthly" | "weekly" | "yearly"} />
             </CardContent>
           </Card>
         </section>
@@ -74,34 +160,16 @@ export default async function DashboardPage({ searchParams }: Props) {
   const isDaily = view === "daily";
 
   if (view === "weekly") {
-    const [year, mon] = params.month
-      ? params.month.split("-").map(Number)
-      : [now.getFullYear(), now.getMonth() + 1];
+    const selectedWeekStart = new Date(`${selectedPeriod}T00:00:00`);
+    const year = selectedWeekStart.getFullYear();
+    const mon = selectedWeekStart.getMonth() + 1;
     const weeklyData = await getWeeklyData(year, mon);
-
-    // デフォルト週: 今日を含む週、なければ最終週
-    let defaultIndex = weeklyData.length - 1;
-    const todayStr = now.toISOString().slice(0, 10);
-    for (let i = 0; i < weeklyData.length; i++) {
-      if (todayStr >= weeklyData[i].startDate && todayStr <= weeklyData[i].endDate) {
-        defaultIndex = i;
-        break;
-      }
-    }
-    const weekIndex = params.week
-      ? Math.min(Math.max(parseInt(params.week) - 1, 0), weeklyData.length - 1)
-      : defaultIndex;
-    const week = weeklyData[weekIndex];
+    const week = weeklyData.find((item) => item.startDate === selectedPeriod) ?? weeklyData[0];
     const bal = week.income - week.expense;
 
     content = (
       <>
-        <MonthSelector year={year} month={mon} />
-        <WeekSelector
-          weekIndex={weekIndex}
-          totalWeeks={weeklyData.length}
-          label={week.label}
-        />
+        <AnalysisPeriodSelector value={selectedPeriod} options={periodOptions} />
         <SummaryCards income={week.income} expense={week.expense} balance={bal} reimbursement={week.reimbursement} />
         {week.categories.length > 0 && (
           <Card>
@@ -154,14 +222,14 @@ export default async function DashboardPage({ searchParams }: Props) {
       </>
     );
   } else if (view === "yearly") {
-    const currentYear = params.year ? parseInt(params.year) : now.getFullYear();
+    const currentYear = parseInt(selectedPeriod);
     const [summary, trendData] = await Promise.all([
       getYearlySummary(currentYear),
       getYearlyTrend(currentYear),
     ]);
     content = (
       <>
-        <YearSelector year={currentYear} />
+        <AnalysisPeriodSelector value={selectedPeriod} options={periodOptions} />
         <SummaryCards
           income={summary.income}
           expense={summary.expense}
@@ -179,20 +247,16 @@ export default async function DashboardPage({ searchParams }: Props) {
       </>
     );
   } else if (view === "daily") {
-    const [currentYear, currentMonth] = params.month
-      ? params.month.split("-").map(Number)
-      : [
-          params.year ? parseInt(params.year) : now.getFullYear(),
-          params.year && parseInt(params.year) !== now.getFullYear() ? 1 : now.getMonth() + 1,
-        ];
+    const [currentYear, currentMonth] = selectedPeriod.split("-").map(Number);
     const monthlyData = await getDailyData(currentYear);
     content = (
-      <DailyTable data={monthlyData[currentMonth - 1]} />
+      <>
+        <AnalysisPeriodSelector value={selectedPeriod} options={periodOptions} />
+        <DailyTable data={monthlyData[currentMonth - 1]} showMonthSelector={false} />
+      </>
     );
   } else {
-    const [year, mon] = params.month
-      ? params.month.split("-").map(Number)
-      : [now.getFullYear(), now.getMonth() + 1];
+    const [year, mon] = selectedPeriod.split("-").map(Number);
     const [summary, categoryData, dailyTrend] = await Promise.all([
       getMonthlySummary(year, mon),
       getCategoryBreakdown(year, mon),
@@ -200,7 +264,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     ]);
     content = (
       <>
-        <MonthSelector year={year} month={mon} />
+        <AnalysisPeriodSelector value={selectedPeriod} options={periodOptions} />
         <SummaryCards
           income={summary.income}
           expense={summary.expense}
@@ -240,7 +304,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
-        <PageTabs tabs={ANALYSIS_TABS} currentTab={tab} basePath="/monthly" />
+        <PageTabs tabs={ANALYSIS_TABS} currentTab={tab} basePath="/monthly" preserveParams={{ view, period: selectedPeriod }} />
         <DashboardTabs activeView={view} />
       </div>
       <div className={`${isDaily ? "max-w-7xl mx-auto" : "max-w-5xl mx-auto"} px-4 pb-8 space-y-6`}>

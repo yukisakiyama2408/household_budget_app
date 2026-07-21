@@ -8,12 +8,13 @@ import CreditSettlementForm from "./CreditSettlementForm";
 
 type Props = {
   data: MonthDailyData;
+  showMonthSelector?: boolean;
 };
 
 const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 const yen = (amount: number) => `¥${amount.toLocaleString("ja-JP")}`;
 
-export default function DailyTable({ data }: Props) {
+export default function DailyTable({ data, showMonthSelector = true }: Props) {
   const {
     year, month, daysInMonth, totalIncome, totalCashExpense,
     days, startBalance, creditSettlement, settlementDay, settlementDate,
@@ -47,7 +48,7 @@ export default function DailyTable({ data }: Props) {
   return (
     <section className="overflow-hidden rounded-2xl border bg-white shadow-sm">
       <header className="flex flex-col gap-4 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-        <MonthSelector year={year} month={month} />
+        {showMonthSelector && <MonthSelector year={year} month={month} />}
         <div className="grid grid-cols-3 gap-5 text-right text-xs tabular-nums sm:gap-8">
           <div>
             <p className="text-gray-400">収入</p>

@@ -14,16 +14,27 @@ const PERIODS = [
 
 type Period = (typeof PERIODS)[number]["value"];
 
-export default function CsvExport() {
+type Props = {
+  target?: { dateFrom: string; dateTo: string; label: string };
+  analysisView?: "monthly" | "weekly" | "yearly";
+};
+
+export default function CsvExport({ target, analysisView }: Props) {
   const [period, setPeriod] = useState<Period>("current");
 
   function handleDownload() {
+    if (target) {
+      const params = new URLSearchParams({ period: "custom", dateFrom: target.dateFrom, dateTo: target.dateTo });
+      if (analysisView) params.set("analysisView", analysisView);
+      window.location.href = `/api/export/csv?${params.toString()}`;
+      return;
+    }
     window.location.href = `/api/export/csv?period=${period}`;
   }
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      <div className="flex rounded-md border overflow-hidden text-sm">
+      {!target && <div className="flex rounded-md border overflow-hidden text-sm">
         {PERIODS.map((p) => (
           <button
             key={p.value}
@@ -37,7 +48,8 @@ export default function CsvExport() {
             {p.label}
           </button>
         ))}
-      </div>
+      </div>}
+      {target && <p className="text-sm font-bold text-gray-700">{target.label}</p>}
       <button
         onClick={handleDownload}
         className="flex items-center gap-1.5 px-4 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"

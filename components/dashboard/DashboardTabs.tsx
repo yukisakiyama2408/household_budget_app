@@ -11,33 +11,15 @@ const tabs: { key: View; label: string }[] = [
   { key: "daily", label: "日次" },
 ];
 
-export default function DashboardTabs({ activeView }: { activeView: View }) {
+export default function DashboardTabs({ activeView, excludeDaily = false }: { activeView: View; excludeDaily?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   function switchView(view: View) {
     const params = new URLSearchParams();
     params.set("view", view);
-
-    const monthParam = searchParams.get("month");
-    const yearParam = searchParams.get("year");
-
-    if (view === "monthly" || view === "weekly" || view === "daily") {
-      if (monthParam) {
-        params.set("month", monthParam);
-      } else if (yearParam) {
-        const now = new Date();
-        const y = parseInt(yearParam);
-        const m = y === now.getFullYear() ? String(now.getMonth() + 1).padStart(2, "0") : "01";
-        params.set("month", `${y}-${m}`);
-      }
-    } else {
-      if (yearParam) {
-        params.set("year", yearParam);
-      } else if (monthParam) {
-        params.set("year", monthParam.split("-")[0]);
-      }
-    }
+    const tab = searchParams.get("tab");
+    if (tab) params.set("tab", tab);
 
     router.push(`?${params.toString()}`);
   }
@@ -48,7 +30,7 @@ export default function DashboardTabs({ activeView }: { activeView: View }) {
       onChange={(e) => switchView(e.target.value as View)}
       className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
     >
-      {tabs.map(({ key, label }) => (
+      {tabs.filter((tab) => !excludeDaily || tab.key !== "daily").map(({ key, label }) => (
         <option key={key} value={key}>{label}</option>
       ))}
     </select>

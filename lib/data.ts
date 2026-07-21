@@ -645,6 +645,21 @@ export async function getTransactionById(id: number) {
   return data as Transaction;
 }
 
+export async function getTransactionDateBounds(): Promise<{ earliest: string; latest: string } | null> {
+  const supabase = await createClient();
+  const [earliestResult, latestResult] = await Promise.all([
+    supabase.from("transactions").select("date").order("date", { ascending: true }).limit(1).maybeSingle(),
+    supabase.from("transactions").select("date").order("date", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  if (earliestResult.error) throw earliestResult.error;
+  if (latestResult.error) throw latestResult.error;
+  if (!earliestResult.data || !latestResult.data) return null;
+  return {
+    earliest: (earliestResult.data as { date: string }).date,
+    latest: (latestResult.data as { date: string }).date,
+  };
+}
+
 function getMonthRange(year: number, month: number) {
   const start = `${year}-${String(month).padStart(2, "0")}-01`;
   const end =

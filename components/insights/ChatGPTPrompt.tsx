@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type CsvPeriod = "weekly" | "monthly" | "3months";
+type CsvPeriod = "weekly" | "monthly" | "yearly" | "3months";
 
 export const TEMPLATES = [
   {
@@ -29,6 +29,19 @@ export const TEMPLATES = [
 2. 週ごとの支出パターン（直近4週間の推移から読み取れる傾向）
 3. 先週と比べて良くなった点・悪化した点
 4. 来週意識すべきポイント`,
+  },
+  {
+    id: "yearly",
+    label: "年次分析",
+    csvPeriod: "yearly" as CsvPeriod,
+    csvLabel: "年次CSV",
+    text: `添付の家計簿CSVを年単位で分析してください。
+
+以下の点を教えてください：
+1. 年間の収入・支出・収支の総評
+2. 月別収支推移から読み取れる支出の増減と要因
+3. 年間で支出割合が大きかったカテゴリと改善余地
+4. 翌年に向けた具体的な家計改善案を3つ`,
   },
   {
     id: "next_week_budget",
@@ -123,25 +136,39 @@ CSVの末尾に「# 欲しいものリスト」セクションが含まれてい
 
 type Props = {
   mode?: "analysis" | "all";
+  target?: { dateFrom: string; dateTo: string; label: string };
+  analysisView?: "monthly" | "weekly" | "yearly";
 };
 
 const BUDGET_TEMPLATE_IDS = new Set(["next_week_budget", "next_month_budget"]);
 
-export default function ChatGPTPrompt({ mode = "analysis" }: Props) {
-  const visibleTemplates =
-    mode === "all" ? TEMPLATES : TEMPLATES.filter((t) => !BUDGET_TEMPLATE_IDS.has(t.id));
+export default function ChatGPTPrompt({ mode = "analysis", target, analysisView }: Props) {
+  const visibleTemplates = mode === "all"
+    ? TEMPLATES
+    : TEMPLATES.filter((template) =>
+        analysisView ? template.id === analysisView : !BUDGET_TEMPLATE_IDS.has(template.id)
+      );
   const [selected, setSelected] = useState<string>(visibleTemplates[0].id);
   const [copied, setCopied] = useState(false);
 
   const template = visibleTemplates.find((t) => t.id === selected) ?? visibleTemplates[0];
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(template.text);
+    const targetInstruction = target
+      ? `\n\n分析対象期間は「${target.label}（${target.dateFrom}〜${target.dateTo}）」です。「今週」「今月」などの相対表現ではなく、この期間を対象に分析してください。`
+      : "";
+    await navigator.clipboard.writeText(`${template.text}${targetInstruction}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   function handleDownload() {
+    if (target) {
+      const params = new URLSearchParams({ period: "custom", dateFrom: target.dateFrom, dateTo: target.dateTo });
+      if (analysisView) params.set("analysisView", analysisView);
+      window.location.href = `/api/export/csv?${params.toString()}`;
+      return;
+    }
     window.location.href = `/api/export/csv?period=${template.csvPeriod}`;
   }
 
@@ -183,7 +210,7 @@ export default function ChatGPTPrompt({ mode = "analysis" }: Props) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          {template.csvLabel}をダウンロード
+          {target ? `${target.label}のCSVをダウンロード` : `${template.csvLabel}をダウンロード`}
         </button>
         <p className="text-xs text-gray-400">
           ① CSVをダウンロード → ② ChatGPTにアップロード → ③ プロンプトをコピーして貼り付け
