@@ -7,6 +7,13 @@ import { TEMPLATES } from "@/components/insights/ChatGPTPrompt";
 type Props = {
   view: "monthly" | "weekly";
   targetLabel?: string;
+  priorAnalysis?: {
+    id: number;
+    title: string;
+    content: string;
+    periodLabel: string;
+    advices: string[];
+  };
 };
 
 const REVIEW_CONFIG = {
@@ -22,7 +29,7 @@ const REVIEW_CONFIG = {
   },
 } as const;
 
-export default function BudgetReviewTools({ view, targetLabel }: Props) {
+export default function BudgetReviewTools({ view, targetLabel, priorAnalysis }: Props) {
   const [copied, setCopied] = useState(false);
   const config = REVIEW_CONFIG[view];
   const template = TEMPLATES.find((t) => t.id === config.templateId);
@@ -34,13 +41,18 @@ export default function BudgetReviewTools({ view, targetLabel }: Props) {
     const targetInstruction = targetLabel
       ? `\n\n予算の設定対象は「${targetLabel}」です。相対表現ではなく、この期間の予算案として出力してください。`
       : "";
-    await navigator.clipboard.writeText(`${selectedTemplate.text}${targetInstruction}`);
+    const analysisInstruction = priorAnalysis
+      ? `\n\nCSV内の「# 登録済みの分析結果（予算設定の根拠）」を必ず参照してください。以下は同じ分析内容です。この振り返りとアドバイスを根拠に、改善点が具体的な金額へ反映された予算を作ってください。\n\n【分析結果: ${priorAnalysis.title}】\n${priorAnalysis.content}${priorAnalysis.advices.length > 0 ? `\n\n【継続するアドバイス】\n${priorAnalysis.advices.map((advice) => `- ${advice}`).join("\n")}` : ""}`
+      : "\n\n直前期間の登録済み分析結果はありません。CSVの実績を分析してから予算案を作成してください。";
+    await navigator.clipboard.writeText(`${selectedTemplate.text}${analysisInstruction}${targetInstruction}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   function downloadCsv() {
-    window.location.href = `/api/export/csv?period=${selectedTemplate.csvPeriod}`;
+    const params = new URLSearchParams({ period: selectedTemplate.csvPeriod });
+    if (priorAnalysis) params.set("analysisResultId", String(priorAnalysis.id));
+    window.location.href = `/api/export/csv?${params.toString()}`;
   }
 
   return (
@@ -73,12 +85,12 @@ export default function BudgetReviewTools({ view, targetLabel }: Props) {
       </div>
       <div className="grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
         <div className="rounded-md bg-gray-50 px-3 py-2">
-          <span className="font-bold text-gray-700">1. CSV</span>
-          <span className="ml-1">ChatGPTにアップロードする材料です。</span>
+          <span className="font-bold text-gray-700">2. CSV</span>
+          <span className="ml-1">実績と登録済み分析結果をChatGPTに渡します。</span>
         </div>
         <div className="rounded-md bg-gray-50 px-3 py-2">
-          <span className="font-bold text-gray-700">2. プロンプト</span>
-          <span className="ml-1">CSVと一緒に貼り付けます。</span>
+          <span className="font-bold text-gray-700">3. 予算案</span>
+          <span className="ml-1">分析結果を含むプロンプトを貼り付けます。</span>
         </div>
       </div>
     </div>

@@ -10,15 +10,25 @@ type PeriodOption = { start: string; end: string; label: string };
 type Props = {
   periods: PeriodOption[];
   categories: CategoryEntry[];
+  priorAnalysis?: {
+    id: number;
+    title: string;
+    content: string;
+    periodLabel: string;
+    advices: string[];
+  };
 };
 
 function formatPeriod(start: string, end: string): string {
   return `${start.replaceAll("-", "/")}〜${end.replaceAll("-", "/")}`;
 }
 
-function createPrompt(start: string, end: string): string {
+function createPrompt(start: string, end: string, priorAnalysis?: Props["priorAnalysis"]): string {
   const period = formatPeriod(start, end);
-  return `添付の家計簿CSVを元に、直近の支出を振り返り、${period}の予算を設定してください。
+  const analysisContext = priorAnalysis
+    ? `\n\nCSV内の「# 登録済みの分析結果（予算設定の根拠）」を必ず参照してください。以下は同じ分析内容です。改善点が具体的な金額へ反映された予算を作ってください。\n\n【分析結果: ${priorAnalysis.title}】\n${priorAnalysis.content}${priorAnalysis.advices.length > 0 ? `\n\n【継続するアドバイス】\n${priorAnalysis.advices.map((advice) => `- ${advice}`).join("\n")}` : ""}`
+    : "\n\n直前週の登録済み分析結果はありません。CSVの実績を分析してから予算案を作成してください。";
+  return `添付の家計簿CSVを元に、直近の支出を振り返り、${period}の予算を設定してください。${analysisContext}
 CSVの末尾に「# 欲しいものリスト」セクションが含まれている場合は、その優先度と購入可能度も踏まえて調整してください。
 
 対象期間が属する月の月次予算と残予算、直近の支出実績を確認した上で、以下の形式で出力してください。
@@ -39,7 +49,7 @@ CSVの末尾に「# 欲しいものリスト」セクションが含まれてい
 特に注意すべきカテゴリと、この期間に意識すべきポイントを一言お願いします。`;
 }
 
-export default function WeeklyBudgetReviewFlow({ periods, categories }: Props) {
+export default function WeeklyBudgetReviewFlow({ periods, categories, priorAnalysis }: Props) {
   const initialPeriod = periods[0] ?? { start: "", end: "", label: "" };
   const [periodStart, setPeriodStart] = useState(initialPeriod.start);
   const [periodEnd, setPeriodEnd] = useState(initialPeriod.end);
@@ -48,8 +58,8 @@ export default function WeeklyBudgetReviewFlow({ periods, categories }: Props) {
 
   const periodIsValid = periodStart !== "" && periodEnd !== "";
   const prompt = useMemo(
-    () => generatedPeriod ? createPrompt(generatedPeriod.start, generatedPeriod.end) : "",
-    [generatedPeriod]
+    () => generatedPeriod ? createPrompt(generatedPeriod.start, generatedPeriod.end, priorAnalysis) : "",
+    [generatedPeriod, priorAnalysis]
   );
 
   function selectPeriod(period: PeriodOption) {
@@ -82,6 +92,7 @@ export default function WeeklyBudgetReviewFlow({ periods, categories }: Props) {
       targetStart: generatedPeriod.start,
       targetEnd: generatedPeriod.end,
     });
+    if (priorAnalysis) params.set("analysisResultId", String(priorAnalysis.id));
     window.location.href = `/api/export/csv?${params.toString()}`;
   }
 
@@ -89,7 +100,7 @@ export default function WeeklyBudgetReviewFlow({ periods, categories }: Props) {
     <div className="space-y-5">
       <div className="space-y-3">
         <div>
-          <p className="text-xs font-bold text-gray-700">1. 対象期間を設定</p>
+          <p className="text-xs font-bold text-gray-700">2. 予算の対象期間を設定</p>
           <p className="mt-1 text-xs text-gray-500">
             月を跨ぐ週は月別の期間に分けて設定してください。
           </p>
@@ -130,7 +141,7 @@ export default function WeeklyBudgetReviewFlow({ periods, categories }: Props) {
         <>
           <div className="space-y-3 border-t pt-4">
             <div>
-              <p className="text-xs font-bold text-gray-700">2. 対象期間のプロンプトを生成</p>
+              <p className="text-xs font-bold text-gray-700">2. CSVとプロンプトを用意</p>
               <p className="mt-1 text-xs text-gray-500">
                 選択した期間が登録先としてプロンプトに反映されています。
               </p>
@@ -157,7 +168,7 @@ export default function WeeklyBudgetReviewFlow({ periods, categories }: Props) {
               分析用CSV
             </button>
             <div className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600">
-              <span className="font-bold text-gray-700">3. ChatGPTで予算を設定</span>
+              <span className="font-bold text-gray-700">3. 分析結果を踏まえて予算を設定</span>
               <span className="ml-1">CSVをアップロードし、コピーしたプロンプトを送信します。</span>
             </div>
           </div>

@@ -19,6 +19,7 @@ import {
   getFixedExpenses,
   getFixedExpenseLogs,
   getTransactions,
+  getAnalysisResults,
 } from "@/lib/data";
 import { getWeekBudgetPeriods, getWeeksOfMonth, getCurrentWeekStart } from "@/lib/dateUtils";
 
@@ -36,6 +37,35 @@ type Props = {
 
 function fmt(n: number) {
   return `¥${Math.abs(n).toLocaleString("ja-JP")}`;
+}
+
+const pad = (value: number) => String(value).padStart(2, "0");
+const dateValue = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+function getPriorAnalysisPeriod(view: "monthly" | "weekly", year: number, month: number, weekStart: string) {
+  if (view === "monthly") {
+    const target = new Date(year, month - 1, 1);
+    const priorStart = new Date(target.getFullYear(), target.getMonth() - 1, 1);
+    const priorEnd = new Date(target.getFullYear(), target.getMonth(), 0);
+    return {
+      view: "monthly" as const,
+      period: `${priorStart.getFullYear()}-${pad(priorStart.getMonth() + 1)}`,
+      dateFrom: dateValue(priorStart),
+      dateTo: dateValue(priorEnd),
+      label: `${priorStart.getFullYear()}年${priorStart.getMonth() + 1}月`,
+    };
+  }
+  const priorStart = new Date(`${weekStart}T00:00:00`);
+  priorStart.setDate(priorStart.getDate() - 7);
+  const priorEnd = new Date(priorStart);
+  priorEnd.setDate(priorEnd.getDate() + 6);
+  return {
+    view: "weekly" as const,
+    period: dateValue(priorStart),
+    dateFrom: dateValue(priorStart),
+    dateTo: dateValue(priorEnd),
+    label: `${priorStart.getFullYear()}/${priorStart.getMonth() + 1}/${priorStart.getDate()}〜${priorEnd.getMonth() + 1}/${priorEnd.getDate()}`,
+  };
 }
 
 export default async function BudgetPage({ searchParams }: Props) {
@@ -61,11 +91,12 @@ export default async function BudgetPage({ searchParams }: Props) {
 
   const selectedMonthLabel = `${year}年${month}月`;
 
-  const [allMonthlyItems, allCategories, fixedExpenses, fixedLogs] = await Promise.all([
+  const [allMonthlyItems, allCategories, fixedExpenses, fixedLogs, analysisResults] = await Promise.all([
     isBudgetTab ? getBudgetData(year, month) : Promise.resolve([]),
     (isBudgetTab || isCategoriesTab) ? getCategories() : Promise.resolve([]),
     isFixedTab ? getFixedExpenses() : Promise.resolve([]),
     isFixedTab ? getFixedExpenseLogs() : Promise.resolve([]),
+    isBudgetTab ? getAnalysisResults() : Promise.resolve([]),
   ]);
 
   const monthlyItems = (allMonthlyItems as Awaited<ReturnType<typeof getBudgetData>>).filter((i) =>
@@ -107,6 +138,20 @@ export default async function BudgetPage({ searchParams }: Props) {
     .slice(0, 4);
 
   const categories = allCategories as Awaited<ReturnType<typeof getCategories>>;
+  const priorPeriod = getPriorAnalysisPeriod(view, year, month, weekStart);
+  const priorAnalysis = (analysisResults as Awaited<ReturnType<typeof getAnalysisResults>>).find(
+    (result) => result.analysis_view === priorPeriod.view
+      && result.date_from === priorPeriod.dateFrom
+      && result.date_to === priorPeriod.dateTo
+  );
+  const priorAnalysisContext = priorAnalysis ? {
+    id: priorAnalysis.id,
+    title: priorAnalysis.title,
+    content: priorAnalysis.content,
+    periodLabel: priorAnalysis.period_label,
+    advices: priorAnalysis.analysis_advices.map((advice) => advice.content),
+  } : undefined;
+  const analysisHref = `/monthly?tab=insights&view=${priorPeriod.view}&period=${priorPeriod.period}`;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
@@ -163,23 +208,44 @@ export default async function BudgetPage({ searchParams }: Props) {
             </div>
 
             <div className="space-y-4">
+              <div className={`rounded-md border p-3 ${priorAnalysis ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className={`text-xs font-bold ${priorAnalysis ? "text-green-800" : "text-amber-800"}`}>
+                      1. {priorPeriod.label}を分析する
+                    </p>
+                    <p className={`mt-1 text-xs ${priorAnalysis ? "text-green-700" : "text-amber-700"}`}>
+                      {priorAnalysis
+                        ? `「${priorAnalysis.title}」を予算案のプロンプトへ反映します。`
+                        : "直前期間の分析を登録すると、その内容を予算案へ引き継げます。"}
+                    </p>
+                  </div>
+                  <Link
+                    href={analysisHref}
+                    className={`shrink-0 rounded-md px-3 py-2 text-xs font-bold text-white ${priorAnalysis ? "bg-green-600 hover:bg-green-700" : "bg-amber-600 hover:bg-amber-700"}`}
+                  >
+                    {priorAnalysis ? "分析結果を確認" : "分析して登録"}
+                  </Link>
+                </div>
+              </div>
               {view === "weekly" ? (
                 <WeeklyBudgetReviewFlow
                   periods={selectedWeekPeriods}
                   categories={weeklyItems.map((item) => ({ id: item.category.id, name: item.category.name }))}
+                  priorAnalysis={priorAnalysisContext}
                 />
               ) : (
-                <BudgetReviewTools view={view} targetLabel={selectedMonthLabel} />
+                <BudgetReviewTools view={view} targetLabel={selectedMonthLabel} priorAnalysis={priorAnalysisContext} />
               )}
 
               {view === "monthly" && <div className="border-t pt-4">
                 <div className="mb-3 grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
                   <div className="rounded-md bg-gray-50 px-3 py-2">
-                    <span className="font-bold text-gray-700">3. AI出力</span>
+                    <span className="font-bold text-gray-700">4. AI出力</span>
                     <span className="ml-1">回答を下の入力欄へ貼り付けます。</span>
                   </div>
                   <div className="rounded-md bg-gray-50 px-3 py-2">
-                    <span className="font-bold text-gray-700">4. 反映</span>
+                    <span className="font-bold text-gray-700">5. 反映</span>
                     <span className="ml-1">認識結果を確認して一括登録します。</span>
                   </div>
                 </div>

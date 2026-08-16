@@ -6,6 +6,7 @@ import {
   getBudgetData,
   getWeeklyBudgetData,
   getYearlyTrend,
+  getAnalysisResults,
   TransactionWithCategory,
 } from "@/lib/data";
 import { getWeeksOfMonth } from "@/lib/dateUtils";
@@ -67,6 +68,29 @@ function buildWishlistSection(
       item.price > 0 ? Math.round((balance / item.price) * 100) : 0,
       item.priority, escapeCsv(item.memo),
     ].join(",")),
+  ];
+}
+
+async function buildAnalysisSection(rawId: string | null): Promise<string[]> {
+  const id = Number(rawId);
+  if (!Number.isInteger(id) || id <= 0) return [];
+  const result = (await getAnalysisResults()).find((item) => item.id === id);
+  if (!result) return [];
+
+  return [
+    "",
+    "# 登録済みの分析結果（予算設定の根拠）",
+    "項目,内容",
+    `タイトル,${escapeCsv(result.title)}`,
+    `分析種別,${result.analysis_view}`,
+    `対象期間,${result.date_from}〜${result.date_to}`,
+    `分析結果,${escapeCsv(result.content)}`,
+    "",
+    "## 分析に含まれるアドバイス",
+    "状態,アドバイス",
+    ...result.analysis_advices.map((advice) =>
+      `${advice.is_completed ? "達成済み" : "未達成"},${escapeCsv(advice.content)}`
+    ),
   ];
 }
 
@@ -137,6 +161,7 @@ function getPeriodRange(period: string): { dateFrom: string; dateTo: string; lab
 export async function GET(req: NextRequest) {
   const searchParams = new URL(req.url).searchParams;
   const period = searchParams.get("period") ?? "current";
+  const analysisSection = await buildAnalysisSection(searchParams.get("analysisResultId"));
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth() + 1;
@@ -227,6 +252,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    lines.push(...analysisSection);
     lines.push(...buildWishlistSection(wishlistItems, balance));
     return toCsvResponse(lines, `${dateFrom}_${dateTo}`);
   }
@@ -342,6 +368,7 @@ export async function GET(req: NextRequest) {
         monthBudgetTotal > 0 ? Math.round((monthActualTotal / monthBudgetTotal) * 100) : ""].join(",")
     );
 
+    lines.push(...analysisSection);
     lines.push(...buildWishlistSection(wishlistItems, balance));
     return toCsvResponse(lines, `budget-${targetStart}_${targetEnd}`);
   }
@@ -434,6 +461,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    lines.push(...analysisSection);
     lines.push(...buildWishlistSection(wishlistItems, balance));
     return toCsvResponse(lines, `monthly-${y}-${pad(m)}`);
   }
