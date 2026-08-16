@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import type { Budget, Category, CreditSettlement, FeatureRequest, FixedExpense, FixedExpenseLog, Transaction, WishlistItem } from "@/types/database";
+import type { AnalysisResultWithAdvices, Budget, Category, CreditSettlement, FeatureRequest, FixedExpense, FixedExpenseLog, Transaction, WishlistItem } from "@/types/database";
 import { getWeekBudgetPeriods } from "@/lib/dateUtils";
 
 export type PaceData = {
@@ -14,6 +14,23 @@ export type PaceData = {
   safeDaily: number;
   budgetRemaining: number;
 };
+
+export async function getAnalysisResults(): Promise<AnalysisResultWithAdvices[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("analysis_results")
+    .select("*, analysis_advices(*)")
+    .order("date_from", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+
+  return ((data ?? []) as AnalysisResultWithAdvices[]).map((result) => ({
+    ...result,
+    analysis_advices: [...(result.analysis_advices ?? [])].sort(
+      (a, b) => a.display_order - b.display_order
+    ),
+  }));
+}
 
 export function calcPace(
   year: number,

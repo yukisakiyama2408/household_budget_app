@@ -10,7 +10,10 @@ import TrendLineChart from "@/components/dashboard/TrendLineChart";
 import PageTabs from "@/components/PageTabs";
 import CsvExport from "@/components/insights/CsvExport";
 import ChatGPTPrompt from "@/components/insights/ChatGPTPrompt";
+import AnalysisResultForm from "@/components/insights/AnalysisResultForm";
+import AnalysisResultList from "@/components/insights/AnalysisResultList";
 import {
+  getAnalysisResults,
   getMonthlySummary,
   getCategoryBreakdown,
   getYearlyTrend,
@@ -120,6 +123,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const target = analysisTarget(view, selectedPeriod, selectedPeriodLabel);
 
   if (isInsightsTab) {
+    const analysisResults = await getAnalysisResults();
     return (
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <PageTabs tabs={ANALYSIS_TABS} currentTab={tab} basePath="/monthly" preserveParams={{ view, period: selectedPeriod }} />
@@ -151,6 +155,21 @@ export default async function DashboardPage({ searchParams }: Props) {
               <ChatGPTPrompt key={view} target={target} analysisView={view as "monthly" | "weekly" | "yearly"} />
             </CardContent>
           </Card>
+        </section>
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-gray-700">分析結果を登録</h2>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">{target.label}の分析記録</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AnalysisResultForm target={target} analysisView={view as "monthly" | "weekly" | "yearly"} />
+            </CardContent>
+          </Card>
+        </section>
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-gray-700">登録済みの分析結果</h2>
+          <AnalysisResultList results={analysisResults} />
         </section>
       </div>
     );

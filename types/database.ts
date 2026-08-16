@@ -4,6 +4,34 @@ export type CategoryType = "income" | "expense" | "both";
 export type FeatureRequestStatus = "検討中" | "次に対応" | "対応済み";
 export type FeatureRequestCategory = "収支入力" | "予算" | "分析" | "通知" | "インポート" | "設定" | "その他";
 export type WishlistPriority = "" | "next" | "high" | "medium" | "low";
+export type AnalysisView = "monthly" | "weekly" | "yearly";
+
+export type AnalysisAdvice = {
+  id: number;
+  analysis_result_id: number;
+  content: string;
+  is_completed: boolean;
+  display_order: number;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AnalysisResult = {
+  id: number;
+  title: string;
+  content: string;
+  analysis_view: AnalysisView;
+  period_label: string;
+  date_from: string;
+  date_to: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AnalysisResultWithAdvices = AnalysisResult & {
+  analysis_advices: AnalysisAdvice[];
+};
 
 export type WishlistItem = {
   id: number;
@@ -132,6 +160,23 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Omit<WishlistItem, "id" | "created_at">>;
+      };
+      analysis_results: {
+        Row: AnalysisResult;
+        Insert: Omit<AnalysisResult, "id" | "created_at" | "updated_at"> & {
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<AnalysisResult, "id" | "created_at">>;
+      };
+      analysis_advices: {
+        Row: AnalysisAdvice;
+        Insert: Omit<AnalysisAdvice, "id" | "created_at" | "updated_at" | "completed_at"> & {
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<AnalysisAdvice, "id" | "analysis_result_id" | "created_at">>;
       };
     };
   };
