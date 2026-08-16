@@ -29,7 +29,7 @@ export default function GoalHeroCard({ goals }: Props) {
       <div className="rounded-2xl p-5 border bg-card flex flex-col h-full" style={{ minHeight: "260px" }}>
         <div className="flex justify-between items-center mb-4">
           <div className="text-[13px] font-semibold">目標の進捗</div>
-          <Link href="/budget" className="text-[11px] text-muted-foreground hover:underline">
+          <Link href="/goals" className="text-[11px] text-muted-foreground hover:underline">
             管理 →
           </Link>
         </div>
@@ -57,7 +57,7 @@ export default function GoalHeroCard({ goals }: Props) {
     <div className="rounded-2xl p-5 border bg-card flex flex-col h-full" style={{ minHeight: "260px" }}>
       <div className="flex justify-between items-center mb-4">
         <div className="text-[13px] font-semibold">目標の進捗</div>
-        <Link href="/budget" className="text-[11px] text-muted-foreground hover:underline">
+        <Link href="/goals" className="text-[11px] text-muted-foreground hover:underline">
           管理 →
         </Link>
       </div>
@@ -133,13 +133,19 @@ export default function GoalHeroCard({ goals }: Props) {
 
       <div className="mt-auto border-t pt-3 space-y-1.5">
         <div className="flex justify-between text-[11px]">
-          <span className="text-muted-foreground">{isSavings ? "現在の残高" : "今月の支出"}</span>
+          <span className="text-muted-foreground">{isSavings ? "目標設定後の貯蓄" : "今月の支出"}</span>
           <span className="font-semibold tabular-nums">{fmtSigned(goal.currentAmount)}</span>
         </div>
         <div className="flex justify-between text-[11px]">
           <span className="text-muted-foreground">目標金額</span>
           <span className="font-semibold tabular-nums">{fmt(goal.target_amount)}</span>
         </div>
+        {isSavings && goal.monthlyRequiredAmount > 0 && (
+          <div className="flex justify-between text-[11px]">
+            <span className="text-muted-foreground">毎月必要</span>
+            <span className="font-semibold tabular-nums text-blue-600">{fmt(goal.monthlyRequiredAmount)}</span>
+          </div>
+        )}
       </div>
     </div>
   );

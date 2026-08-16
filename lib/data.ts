@@ -435,7 +435,10 @@ export type Goal = {
   target_amount: number;
   deadline: string | null;
   category_id: number | null;
+  start_balance: number;
+  is_active: boolean;
   created_at: string;
+  updated_at: string;
 };
 
 export type GoalWithProgress = Goal & {
@@ -444,6 +447,9 @@ export type GoalWithProgress = Goal & {
   isOnTrack: boolean;
   categoryName: string | null;
   categoryColor: string | null;
+  remainingAmount: number;
+  monthlyRequiredAmount: number;
+  monthsRemaining: number | null;
 };
 
 export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
@@ -451,6 +457,7 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from("goals") as any)
     .select("*, categories(name, color)")
+    .eq("is_active", true)
     .order("created_at", { ascending: false });
   if (error) {
     if (error.code === "42P01") return [];
@@ -466,7 +473,7 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  // 貯金目標：日次表と同じ今日時点の残高
+  // 貯蓄目標は作成時残高から増えた分だけを実績とする。
   const savingsGoals = goals.filter((g) => g.type === "savings");
   const currentBalance = savingsGoals.length > 0 ? await getCurrentBalance() : 0;
 
@@ -493,10 +500,21 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
   return goals.map((g) => {
     const currentAmount =
       g.type === "savings"
-        ? currentBalance
+        ? Math.max(currentBalance - (g.start_balance ?? 0), 0)
         : (g.category_id ? (categoryExpenses.get(g.category_id) ?? 0) : 0);
     const rawProgress = g.target_amount > 0 ? currentAmount / g.target_amount : 0;
     const isOnTrack = g.type === "savings" ? rawProgress >= 1 : currentAmount <= g.target_amount;
+    const remainingAmount = Math.max(g.target_amount - currentAmount, 0);
+    let monthsRemaining: number | null = null;
+    let monthlyRequiredAmount = 0;
+    if (g.type === "savings" && g.deadline) {
+      const deadline = new Date(`${g.deadline}T00:00:00`);
+      monthsRemaining = Math.max(
+        (deadline.getFullYear() - now.getFullYear()) * 12 + deadline.getMonth() - now.getMonth() + 1,
+        1
+      );
+      monthlyRequiredAmount = Math.ceil(remainingAmount / monthsRemaining);
+    }
 
     return {
       ...g,
@@ -505,6 +523,9 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
       isOnTrack,
       categoryName: g.categories?.name ?? null,
       categoryColor: g.categories?.color ?? null,
+      remainingAmount,
+      monthlyRequiredAmount,
+      monthsRemaining,
     };
   });
 }

@@ -3,15 +3,15 @@ import {
   getCurrentBalance,
   getBudgetData,
   getTransactions,
-  getWishlistItems,
   getWeeklyBudgetData,
   hasMonthlyBudget,
   hasWeeklyBudget,
+  getGoalsWithProgress,
 } from "@/lib/data";
 import BudgetAlertBanner from "@/components/home/BudgetAlertBanner";
 import BalanceHeroCard from "@/components/home/BalanceHeroCard";
-import WishlistHeroCard from "@/components/home/WishlistHeroCard";
 import BudgetTransactionsSection from "@/components/home/BudgetTransactionsSection";
+import GoalHeroCard from "@/components/home/GoalHeroCard";
 
 const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
 const MONTHLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品", "その他"];
@@ -52,18 +52,18 @@ export default async function HomePage() {
     balance,
     budgetItems,
     recentTx,
-    wishlistItems,
     allWeeklyItems,
     monthlyRegistered,
     weeklyRegistered,
+    goals,
   ] = await Promise.all([
     getCurrentBalance(),
     getBudgetData(year, month),
     getTransactions({ limit: 8, dateTo: fmtDate(now) }),
-    getWishlistItems(),
     getWeeklyBudgetData(year, month, currentWeek.start, currentWeek.end),
     hasMonthlyBudget(year, month),
     hasWeeklyBudget(currentWeek.start),
+    getGoalsWithProgress(),
   ]);
 
   const weeklyItems = allWeeklyItems.filter((i) =>
@@ -138,7 +138,7 @@ export default async function HomePage() {
           month={month}
           dateLabel={dateLabel}
         />
-        <WishlistHeroCard items={wishlistItems} balance={balance} />
+        <GoalHeroCard goals={goals} />
       </div>
 
       {/* Budget tabs + transactions (shared category filter state) */}

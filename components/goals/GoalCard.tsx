@@ -105,7 +105,7 @@ export default function GoalCard({ goal, categories = [] }: Props) {
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-gray-500">
             <span>
-              {isSavings ? "現在の残高" : "今月の支出"}: {fmtSigned(goal.currentAmount)}
+              {isSavings ? "目標設定後の貯蓄" : "今月の支出"}: {fmtSigned(goal.currentAmount)}
             </span>
             <span className={isOver && !isSavings ? "text-red-600 font-medium" : ""}>
               {isSavings ? "目標" : "上限"}: {fmt(goal.target_amount)}
@@ -127,6 +127,11 @@ export default function GoalCard({ goal, categories = [] }: Props) {
               </span>
             )}
           </div>
+          {isSavings && goal.monthlyRequiredAmount > 0 && (
+            <div className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              期限まで{goal.monthsRemaining}か月 · 毎月 <span className="font-bold">{fmt(goal.monthlyRequiredAmount)}</span> の貯蓄が必要です
+            </div>
+          )}
         </div>
       </div>
 
