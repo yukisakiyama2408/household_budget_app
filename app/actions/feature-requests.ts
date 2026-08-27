@@ -70,7 +70,7 @@ export async function voteFeatureRequest(id: number): Promise<void> {
     request_id: id,
   });
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidatePath("/feature-requests");
 }
 
@@ -93,6 +93,6 @@ export async function updateFeatureRequestStatus(
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id);
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidatePath("/feature-requests");
 }

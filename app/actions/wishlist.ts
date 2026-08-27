@@ -44,7 +44,7 @@ export async function createWishlistItem(formData: FormData) {
     .insert(values)
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidateWishlist();
   return data as WishlistItem;
 }
@@ -60,7 +60,7 @@ export async function updateWishlistItem(id: number, formData: FormData) {
     .is("purchased_at", null)
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidateWishlist();
   return data as WishlistItem;
 }
@@ -72,7 +72,7 @@ export async function markWishlistItemPurchased(id: number) {
   const { error } = await (supabase.from("wishlist_items") as any)
     .update({ purchased_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", id);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidateWishlist();
 }
 
@@ -83,6 +83,6 @@ export async function restoreWishlistItem(id: number) {
   const { error } = await (supabase.from("wishlist_items") as any)
     .update({ purchased_at: null, updated_at: new Date().toISOString() })
     .eq("id", id);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidateWishlist();
 }

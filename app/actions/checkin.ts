@@ -10,7 +10,7 @@ export async function recordCheckin(weekStart: string) {
     { week_start: weekStart },
     { onConflict: "week_start" }
   );
-  if (error && error.code !== "42P01") throw error;
+  if (error && error.code !== "42P01") throw new Error(error.message);
   revalidatePath("/");
   revalidatePath("/checkin");
 }

@@ -13,7 +13,7 @@ export async function applyFixedExpenses(
     .from("fixed_expenses")
     .select("*")
     .eq("is_active", true);
-  if (fixedError) throw fixedError;
+  if (fixedError) throw new Error(fixedError.message);
   const fixedExpenses = (fixedData ?? []) as FixedExpense[];
 
   if (fixedExpenses.length === 0) return { applied: 0, skipped: 0 };
@@ -23,7 +23,7 @@ export async function applyFixedExpenses(
     .select("fixed_expense_id")
     .eq("year", year)
     .eq("month", month);
-  if (logError) throw logError;
+  if (logError) throw new Error(logError.message);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const appliedIds = new Set((logData ?? []).map((l: any) => l.fixed_expense_id as number));
 
@@ -52,7 +52,7 @@ export async function applyFixedExpenses(
         pay_method: fe.pay_method,
         store: fe.store,
       } as any) as any);
-    if (txError) throw txError;
+    if (txError) throw new Error(txError.message);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: logInsertError } = await (supabase.from("fixed_expense_logs") as any).insert({
@@ -60,7 +60,7 @@ export async function applyFixedExpenses(
       year,
       month,
     });
-    if (logInsertError) throw logInsertError;
+    if (logInsertError) throw new Error(logInsertError.message);
 
     applied++;
   }

@@ -35,7 +35,7 @@ export async function createGoal(formData: FormData) {
     start_balance: startBalance,
     is_active: true,
   });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidatePath("/goals");
   revalidatePath("/");
 }
@@ -53,7 +53,7 @@ export async function updateGoal(id: number, formData: FormData) {
   const { error } = await (supabase.from("goals") as any)
     .update({ title, target_amount: targetAmount, deadline, category_id: categoryId, updated_at: new Date().toISOString() })
     .eq("id", id);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidatePath("/goals");
   revalidatePath("/");
 }
@@ -62,7 +62,7 @@ export async function deleteGoal(id: number) {
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from("goals") as any).delete().eq("id", id);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidatePath("/goals");
   revalidatePath("/");
 }

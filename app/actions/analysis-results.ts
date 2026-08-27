@@ -73,6 +73,6 @@ export async function toggleAnalysisAdvice(id: number, completed: boolean): Prom
     completed_at: completed ? now : null,
     updated_at: now,
   }).eq("id", id);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   revalidatePath("/monthly");
 }

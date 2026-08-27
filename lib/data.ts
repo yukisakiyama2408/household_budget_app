@@ -22,7 +22,7 @@ export async function getAnalysisResults(): Promise<AnalysisResultWithAdvices[]>
     .select("*, analysis_advices(*)")
     .order("date_from", { ascending: false })
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 
   return ((data ?? []) as AnalysisResultWithAdvices[]).map((result) => ({
     ...result,
@@ -104,7 +104,7 @@ async function fetchAllTransactions(
   let from = 0;
   while (true) {
     const { data, error } = await baseQuery.range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     const batch = (data ?? []) as Transaction[];
     all.push(...batch);
     if (batch.length < PAGE_SIZE) break;
@@ -126,7 +126,7 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
     .from("credit_settlements")
     .select("*")
     .lt("year", year);
-  if (prevSetError) throw prevSetError;
+  if (prevSetError) throw new Error(prevSetError.message);
 
   const prevSettlementTotal = ((prevSettlements ?? []) as CreditSettlement[]).reduce(
     (sum, s) => sum + s.amount, 0
@@ -152,7 +152,7 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
     .from("credit_settlements")
     .select("*")
     .eq("year", year);
-  if (setError) throw setError;
+  if (setError) throw new Error(setError.message);
 
   const settlementMap = new Map<number, { amount: number; day: number; date: string }>(
     ((settlementData ?? []) as CreditSettlement[]).map((s) => {
@@ -248,7 +248,7 @@ export async function getWeeklyData(year: number, month: number): Promise<WeekDa
     .select("date, amount, type, category_id, categories(name, color, offset_category_id)")
     .gte("date", fmtDate(firstMonday))
     .lte("date", fmtDate(lastSunday));
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   const rows = (data ?? []) as {
     date: string;
     amount: number;
@@ -326,7 +326,7 @@ export async function getDailySpendingTrend(year: number, month: number): Promis
     .eq("type", "expense")
     .gte("date", `${year}-${pad(month)}-01`)
     .lte("date", `${year}-${pad(month)}-${pad(daysInMonth)}`);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 
   const dailyMap = new Map<number, number>();
   for (const tx of (data ?? []) as { date: string; amount: number }[]) {
@@ -368,7 +368,7 @@ export async function getWeekSummaryForDates(startDate: string, endDate: string)
     .select("date, amount, type, category_id, categories(name, color, offset_category_id)")
     .gte("date", startDate)
     .lte("date", endDate);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 
   const rows = (data ?? []) as {
     date: string;
@@ -421,7 +421,7 @@ export async function getCheckinForWeek(weekStart: string): Promise<boolean> {
   // テーブル未作成時は false として扱う（42P01 = undefined_table）
   if (error) {
     if (error.code === "42P01") return false;
-    throw error;
+    throw new Error(error.message);
   }
   return data !== null;
 }
@@ -461,7 +461,7 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
     .order("created_at", { ascending: false });
   if (error) {
     if (error.code === "42P01") return [];
-    throw error;
+    throw new Error(error.message);
   }
 
   const goals = (data ?? []) as (Goal & {
@@ -491,7 +491,7 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
       .gte("date", start)
       .lt("date", end)
       .in("category_id", expenseCategoryIds);
-    if (txError) throw txError;
+    if (txError) throw new Error(txError.message);
     for (const tx of (txData ?? []) as { category_id: number; amount: number }[]) {
       categoryExpenses.set(tx.category_id, (categoryExpenses.get(tx.category_id) ?? 0) + tx.amount);
     }
@@ -536,7 +536,7 @@ export async function getCreditSettlements(year: number): Promise<CreditSettleme
     .from("credit_settlements")
     .select("*")
     .eq("year", year);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return (data ?? []) as CreditSettlement[];
 }
 
@@ -546,7 +546,7 @@ export async function getCategories(): Promise<Category[]> {
     .from("categories")
     .select("*")
     .order("display_order", { ascending: true });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return (data ?? []) as Category[];
 }
 
@@ -612,7 +612,7 @@ export async function getTransactions({
   if (limit) {
     query = query.limit(limit);
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     return (data ?? []) as TransactionWithCategory[];
   }
 
@@ -621,7 +621,7 @@ export async function getTransactions({
   let from = 0;
   while (true) {
     const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     const batch = (data ?? []) as TransactionWithCategory[];
     all.push(...batch);
     if (batch.length < PAGE_SIZE) break;
@@ -639,7 +639,7 @@ export async function getCurrentBalance(): Promise<number> {
     fetchAllTransactions(supabase.from("transactions").select("*").lte("date", todayStr)),
     supabase.from("credit_settlements").select("*").lte("settlement_date", todayStr),
   ]);
-  if (setError) throw setError;
+  if (setError) throw new Error(setError.message);
 
   const txBalance = allRows.reduce((sum, t) => {
     if (t.type === "income") return sum + t.amount;
@@ -665,7 +665,7 @@ export async function getWishlistItems(): Promise<WishlistItem[]> {
     .order("created_at", { ascending: false });
   if (error) {
     if (error.code === "42P01") return [];
-    throw error;
+    throw new Error(error.message);
   }
   return ((data ?? []) as WishlistItem[]).sort(
     (a, b) => wishlistPriorityOrder[a.priority] - wishlistPriorityOrder[b.priority]
@@ -679,7 +679,7 @@ export async function getTransactionById(id: number) {
     .select("*")
     .eq("id", id)
     .single();
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Transaction;
 }
 
@@ -715,8 +715,8 @@ export async function getMonthlySummary(year: number, month: number) {
     supabase.from("transactions").select("type, amount").gte("date", start).lt("date", end),
     supabase.from("transactions").select("amount, categories(offset_category_id)").eq("type", "income").gte("date", start).lt("date", end),
   ]);
-  if (txError) throw txError;
-  if (reimError) throw reimError;
+  if (txError) throw new Error(txError.message);
+  if (reimError) throw new Error(reimError.message);
 
   const rows = (txData ?? []) as { type: string; amount: number }[];
   const income = rows.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
@@ -743,7 +743,7 @@ export async function getCategoryBreakdown(year: number, month: number) {
     .gte("date", start)
     .lt("date", end);
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 
   type Row = { type: string; amount: number; category_id: number | null; categories: { name: string; color: string | null; offset_category_id: number | null } | null };
   const rows = (data ?? []) as Row[];
@@ -780,7 +780,7 @@ export async function getYearlyTrend(year: number) {
     ),
     supabase.from("transactions").select("date, amount, categories(offset_category_id)").eq("type", "income").gte("date", `${year}-01-01`).lt("date", `${year + 1}-01-01`),
   ]);
-  if (reimError) throw reimError;
+  if (reimError) throw new Error(reimError.message);
 
   const map = new Map<string, { income: number; expense: number; reimbursement: number }>();
 
@@ -818,7 +818,7 @@ export async function getYearlySummary(year: number) {
     ),
     supabase.from("transactions").select("amount, categories(offset_category_id)").eq("type", "income").gte("date", `${year}-01-01`).lt("date", `${year + 1}-01-01`),
   ]);
-  if (reimError) throw reimError;
+  if (reimError) throw new Error(reimError.message);
 
   const income = rows.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
   const expense = rows.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
@@ -844,7 +844,7 @@ export async function getYearlyBudget(year: number): Promise<YearlyBudgetData> {
     getYearlySummary(year),
   ]);
 
-  if (budgetError) throw budgetError;
+  if (budgetError) throw new Error(budgetError.message);
 
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -859,7 +859,7 @@ export async function getFixedExpenses(): Promise<FixedExpenseWithCategory[]> {
     .from("fixed_expenses")
     .select("*, categories(name, color)")
     .order("day_of_month", { ascending: true });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return (data ?? []) as FixedExpenseWithCategory[];
 }
 
@@ -870,7 +870,7 @@ export async function getFixedExpenseLogs(): Promise<FixedExpenseLog[]> {
     .select("*")
     .order("year", { ascending: false })
     .order("month", { ascending: false });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return (data ?? []) as FixedExpenseLog[];
 }
 
@@ -881,7 +881,7 @@ export async function getFixedExpenseById(id: number): Promise<FixedExpense> {
     .select("*")
     .eq("id", id)
     .single();
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as FixedExpense;
 }
 
@@ -899,9 +899,9 @@ export async function getBudgetData(year: number, month: number): Promise<Budget
     supabase.from("transactions").select("type, amount, category_id, categories(offset_category_id)").gte("date", start).lt("date", end),
   ]);
 
-  if (catError) throw catError;
-  if (budgetError) throw budgetError;
-  if (txError) throw txError;
+  if (catError) throw new Error(catError.message);
+  if (budgetError) throw new Error(budgetError.message);
+  if (txError) throw new Error(txError.message);
 
   const categories = (categoryData ?? []) as Category[];
   const budgets = (budgetData ?? []) as Budget[];
@@ -975,7 +975,7 @@ export async function getWeeklyBudgetData(
     ),
   ]);
 
-  if (catError) throw catError;
+  if (catError) throw new Error(catError.message);
   for (const result of monthlyBudgetResults) {
     if (result.error) throw result.error;
   }
@@ -1059,7 +1059,7 @@ export async function getMonthlyTotalBudget(year: number, month: number): Promis
     .eq("year", year)
     .eq("month", month)
     .maybeSingle();
-  if (error && error.code !== "42P01") throw error;
+  if (error && error.code !== "42P01") throw new Error(error.message);
   return (data as { amount: number } | null)?.amount ?? 0;
 }
 
@@ -1070,7 +1070,7 @@ export async function getWeeklyTotalBudget(weekStart: string): Promise<number> {
     .select("amount")
     .eq("week_start", weekStart)
     .maybeSingle();
-  if (error && error.code !== "42P01") throw error;
+  if (error && error.code !== "42P01") throw new Error(error.message);
   return (data as { amount: number } | null)?.amount ?? 0;
 }
 
@@ -1082,7 +1082,7 @@ export async function hasMonthlyBudget(year: number, month: number): Promise<boo
     .eq("year", year)
     .eq("month", month)
     .limit(1);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return ((data ?? []) as unknown[]).length > 0;
 }
 
@@ -1097,7 +1097,7 @@ export async function hasWeeklyBudget(weekStart: string): Promise<boolean> {
     .gte("period_start", weekStart)
     .lte("period_end", weekEnd)
     .limit(1);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return ((data ?? []) as unknown[]).length > 0;
 }
 
@@ -1109,7 +1109,7 @@ export async function getFeatureRequests(): Promise<FeatureRequest[]> {
     .order("votes", { ascending: false })
     .order("created_at", { ascending: false });
 
-  if (error && error.code !== "42P01") throw error;
+  if (error && error.code !== "42P01") throw new Error(error.message);
   return (data ?? []) as FeatureRequest[];
 }
 
@@ -1122,6 +1122,6 @@ export async function getFeatureRequestSuggestions(limit = 8): Promise<Pick<Feat
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (error && error.code !== "42P01") throw error;
+  if (error && error.code !== "42P01") throw new Error(error.message);
   return (data ?? []) as Pick<FeatureRequest, "id" | "title" | "category" | "votes">[];
 }
