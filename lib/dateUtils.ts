@@ -2,6 +2,37 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export const fmtDate = (d: Date) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+export type CalendarDate = {
+  year: number;
+  month: number;
+  day: number;
+  dayOfWeek: number;
+  date: string;
+};
+
+/** Returns the current calendar date in Japan, independently of the server timezone. */
+export function getJapanToday(now = new Date()): CalendarDate {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const value = (type: "year" | "month" | "day") =>
+    Number(parts.find((part) => part.type === type)?.value);
+  const year = value("year");
+  const month = value("month");
+  const day = value("day");
+
+  return {
+    year,
+    month,
+    day,
+    dayOfWeek: new Date(Date.UTC(year, month - 1, day)).getUTCDay(),
+    date: `${year}-${pad(month)}-${pad(day)}`,
+  };
+}
+
 export type WeekRange = { start: string; end: string; label: string };
 export type BudgetPeriod = WeekRange & {
   year: number;

@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import type { AnalysisResultWithAdvices, Budget, Category, CreditSettlement, FeatureRequest, FixedExpense, FixedExpenseLog, Transaction, WishlistItem } from "@/types/database";
-import { getWeekBudgetPeriods } from "@/lib/dateUtils";
+import { getJapanToday, getWeekBudgetPeriods } from "@/lib/dateUtils";
 
 export type PaceData = {
   dayOfMonth: number;
@@ -632,8 +632,7 @@ export async function getTransactions({
 
 export async function getCurrentBalance(): Promise<number> {
   const supabase = await createClient();
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayStr = getJapanToday().date;
 
   const [allRows, { data: settlements, error: setError }] = await Promise.all([
     fetchAllTransactions(supabase.from("transactions").select("*").lte("date", todayStr)),

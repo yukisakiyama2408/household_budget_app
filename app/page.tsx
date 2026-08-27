@@ -12,26 +12,24 @@ import BudgetAlertBanner from "@/components/home/BudgetAlertBanner";
 import BalanceHeroCard from "@/components/home/BalanceHeroCard";
 import BudgetTransactionsSection from "@/components/home/BudgetTransactionsSection";
 import GoalHeroCard from "@/components/home/GoalHeroCard";
+import { getJapanToday } from "@/lib/dateUtils";
 
 const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
 const MONTHLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品", "その他"];
 const DOW_LABEL = ["日", "月", "火", "水", "木", "金", "土"];
 
-function fmtDate(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function getCurrentWeekBounds(date: Date): { start: string; end: string; label: string } {
-  const d = new Date(date);
-  const day = d.getDay();
+function getCurrentWeekBounds(date: string): { start: string; end: string; label: string } {
+  const [year, month, dateOfMonth] = date.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, dateOfMonth));
+  const day = d.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
   const start = new Date(d);
-  start.setDate(d.getDate() + diff);
+  start.setUTCDate(d.getUTCDate() + diff);
   const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  const startStr = fmtDate(start);
-  const endStr = fmtDate(end);
+  end.setUTCDate(start.getUTCDate() + 6);
+  const fmtUtcDate = (value: Date) => value.toISOString().slice(0, 10);
+  const startStr = fmtUtcDate(start);
+  const endStr = fmtUtcDate(end);
   const [, sm, sd] = startStr.split("-");
   const [, em, ed] = endStr.split("-");
   const label =
@@ -42,11 +40,10 @@ function getCurrentWeekBounds(date: Date): { start: string; end: string; label: 
 }
 
 export default async function HomePage() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  const dateLabel = `${month}/${now.getDate()} (${DOW_LABEL[now.getDay()]})`;
-  const currentWeek = getCurrentWeekBounds(now);
+  const today = getJapanToday();
+  const { year, month } = today;
+  const dateLabel = `${month}/${today.day} (${DOW_LABEL[today.dayOfWeek]})`;
+  const currentWeek = getCurrentWeekBounds(today.date);
 
   const [
     balance,
@@ -59,7 +56,7 @@ export default async function HomePage() {
   ] = await Promise.all([
     getCurrentBalance(),
     getBudgetData(year, month),
-    getTransactions({ limit: 8, dateTo: fmtDate(now) }),
+    getTransactions({ limit: 8, dateTo: today.date }),
     getWeeklyBudgetData(year, month, currentWeek.start, currentWeek.end),
     hasMonthlyBudget(year, month),
     hasWeeklyBudget(currentWeek.start),
@@ -72,10 +69,9 @@ export default async function HomePage() {
   const monthlyItems = budgetItems.filter((i) =>
     MONTHLY_BUDGET_CATEGORIES.includes(i.category.name)
   );
-  const today = fmtDate(now);
   const activeWeeklyPeriodIndex =
     weeklyItems[0]?.periods.findIndex(
-      (period) => period.start <= today && today <= period.end
+      (period) => period.start <= today.date && today.date <= period.end
     ) ?? -1;
   const resolvedWeeklyPeriodIndex = activeWeeklyPeriodIndex >= 0 ? activeWeeklyPeriodIndex : 0;
   const activeWeeklyPeriod =
