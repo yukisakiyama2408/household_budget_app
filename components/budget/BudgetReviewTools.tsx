@@ -20,12 +20,12 @@ const REVIEW_CONFIG = {
   monthly: {
     templateId: "next_month_budget",
     title: "来月の予算案を作る",
-    description: "先月・今月の実績、月次予算、直近3ヶ月の推移を使って、来月の月次/週次予算案を作ります。",
+    description: "先月・今月の実績、直近3ヶ月の推移、登録済み目標を使って、貯蓄額を先に確保した予算案を作ります。",
   },
   weekly: {
     templateId: "next_week_budget",
     title: "来週の予算を見直す",
-    description: "先週・今週の実績、週次予算、今月の残予算を使って、来週のカテゴリ別予算を見直します。",
+    description: "先週・今週の実績、今月の残予算、登録済み目標を使って、来週のカテゴリ別予算を見直します。",
   },
 } as const;
 
@@ -86,7 +86,7 @@ export default function BudgetReviewTools({ view, targetLabel, priorAnalysis }: 
       <div className="grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
         <div className="rounded-md bg-gray-50 px-3 py-2">
           <span className="font-bold text-gray-700">2. CSV</span>
-          <span className="ml-1">実績と登録済み分析結果をChatGPTに渡します。</span>
+          <span className="ml-1">実績、登録済み分析結果、現在の目標をChatGPTに渡します。</span>
         </div>
         <div className="rounded-md bg-gray-50 px-3 py-2">
           <span className="font-bold text-gray-700">3. 予算案</span>

@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import type { AnalysisResultWithAdvices, Budget, Category, CreditSettlement, FeatureRequest, FixedExpense, FixedExpenseLog, Transaction, WishlistItem } from "@/types/database";
+import type { AnalysisResultWithAdvices, Budget, Category, CreditSettlement, FeatureRequest, FixedExpense, FixedExpenseLog, Goal, Transaction } from "@/types/database";
 import { getJapanToday, getWeekBudgetPeriods } from "@/lib/dateUtils";
 
 export type PaceData = {
@@ -426,21 +426,6 @@ export async function getCheckinForWeek(weekStart: string): Promise<boolean> {
   return data !== null;
 }
 
-export type GoalType = "savings" | "expense";
-
-export type Goal = {
-  id: number;
-  title: string;
-  type: GoalType;
-  target_amount: number;
-  deadline: string | null;
-  category_id: number | null;
-  start_balance: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
 export type GoalWithProgress = Goal & {
   currentAmount: number;
   progress: number;  // 0–1 (capped)
@@ -454,13 +439,15 @@ export type GoalWithProgress = Goal & {
 
 export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from("goals") as any)
+  const { data, error } = await supabase
+    .from("goals")
     .select("*, categories(name, color)")
     .eq("is_active", true)
     .order("created_at", { ascending: false });
   if (error) {
-    if (error.code === "42P01") return [];
+    // Keep /goals reachable while a new or older environment is waiting for
+    // the goals migrations (missing table/columns or relationship cache).
+    if (["42P01", "42703", "PGRST200", "PGRST204"].includes(error.code)) return [];
     throw new Error(error.message);
   }
 
@@ -472,10 +459,6 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
-
-  // 貯蓄目標は作成時残高から増えた分だけを実績とする。
-  const savingsGoals = goals.filter((g) => g.type === "savings");
-  const currentBalance = savingsGoals.length > 0 ? await getCurrentBalance() : 0;
 
   const expenseCategoryIds = goals
     .filter((g) => g.type === "expense" && g.category_id != null)
@@ -500,7 +483,7 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
   return goals.map((g) => {
     const currentAmount =
       g.type === "savings"
-        ? Math.max(currentBalance - (g.start_balance ?? 0), 0)
+        ? Math.max(g.saved_amount ?? 0, 0)
         : (g.category_id ? (categoryExpenses.get(g.category_id) ?? 0) : 0);
     const rawProgress = g.target_amount > 0 ? currentAmount / g.target_amount : 0;
     const isOnTrack = g.type === "savings" ? rawProgress >= 1 : currentAmount <= g.target_amount;
@@ -651,24 +634,6 @@ export async function getCurrentBalance(): Promise<number> {
   );
 
   return txBalance - settlementTotal;
-}
-
-const wishlistPriorityOrder = { next: 0, high: 1, medium: 2, low: 3, "": 4 } as const;
-
-export async function getWishlistItems(): Promise<WishlistItem[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("wishlist_items")
-    .select("*")
-    .is("purchased_at", null)
-    .order("created_at", { ascending: false });
-  if (error) {
-    if (error.code === "42P01") return [];
-    throw new Error(error.message);
-  }
-  return ((data ?? []) as WishlistItem[]).sort(
-    (a, b) => wishlistPriorityOrder[a.priority] - wishlistPriorityOrder[b.priority]
-  );
 }
 
 export async function getTransactionById(id: number) {

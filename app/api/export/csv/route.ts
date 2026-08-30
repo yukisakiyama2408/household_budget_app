@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getTransactions,
-  getCurrentBalance,
-  getWishlistItems,
   getBudgetData,
   getWeeklyBudgetData,
   getYearlyTrend,
@@ -55,23 +53,6 @@ function buildTxRows(transactions: TransactionWithCategory[]): string[] {
   );
 }
 
-function buildWishlistSection(
-  items: Awaited<ReturnType<typeof getWishlistItems>>,
-  balance: number
-): string[] {
-  if (items.length === 0) return [];
-  return [
-    "",
-    "# 欲しいものリスト",
-    "タイトル,金額,現在残高,購入可能度(%),優先度,メモ",
-    ...items.map((item) => [
-      escapeCsv(item.title), item.price, balance,
-      item.price > 0 ? Math.round((balance / item.price) * 100) : 0,
-      item.priority, escapeCsv(item.memo),
-    ].join(",")),
-  ];
-}
-
 async function buildAnalysisSection(rawId: string | null): Promise<string[]> {
   const id = Number(rawId);
   if (!Number.isInteger(id) || id <= 0) return [];
@@ -100,8 +81,8 @@ async function buildGoalsSection(): Promise<string[]> {
   if (goals.length === 0) return [];
   return [
     "",
-    "# 現在の目標（予算設定の制約）",
-    "目標,種別,カテゴリ,目標金額,現在値,残額,期限,毎月必要な金額,達成率(%),状態",
+    "# 現在の目標（分析・予算設定の制約）",
+    "目標,種別,カテゴリ,目標金額または上限,現在の貯蓄額または今月支出,残額,期限,毎月必要な貯蓄額,達成率または消化率(%),状態",
     ...goals.map((goal) => [
       escapeCsv(goal.title),
       goal.type === "savings" ? "貯蓄" : "支出上限",
@@ -112,7 +93,9 @@ async function buildGoalsSection(): Promise<string[]> {
       goal.deadline ?? "",
       goal.type === "savings" ? goal.monthlyRequiredAmount : "",
       Math.round(goal.progress * 100),
-      goal.isOnTrack ? "順調" : goal.type === "expense" ? "上限超過" : "未達成",
+      goal.type === "savings"
+        ? goal.progress >= 1 ? "達成" : "進行中"
+        : goal.isOnTrack ? "上限内" : "上限超過",
     ].join(",")),
   ];
 }
@@ -164,6 +147,17 @@ function getPeriodRange(period: string): { dateFrom: string; dateTo: string; lab
       label: `${startY}-${pad(startM)}_${y}-${pad(m)}`,
     };
   }
+  if (period === "6months") {
+    const start = new Date(y, m - 6, 1);
+    const startY = start.getFullYear();
+    const startM = start.getMonth() + 1;
+    const lastDay = new Date(y, m, 0).getDate();
+    return {
+      dateFrom: `${startY}-${pad(startM)}-01`,
+      dateTo: `${y}-${pad(m)}-${pad(lastDay)}`,
+      label: `${startY}-${pad(startM)}_${y}-${pad(m)}`,
+    };
+  }
   if (period === "year") {
     return { dateFrom: `${y}-01-01`, dateTo: `${y}-12-31`, label: `${y}` };
   }
@@ -204,11 +198,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "分析対象期間が不正です。" }, { status: 400 });
     }
 
-    const [transactions, wishlistItems, balance] = await Promise.all([
-      getTransactions({ dateFrom, dateTo }),
-      getWishlistItems(),
-      getCurrentBalance(),
-    ]);
+    const transactions = await getTransactions({ dateFrom, dateTo });
     const income = transactions
       .filter((transaction) => transaction.type === "income")
       .reduce((sum, transaction) => sum + transaction.amount, 0);
@@ -280,7 +270,6 @@ export async function GET(req: NextRequest) {
 
     lines.push(...analysisSection);
     lines.push(...goalsSection);
-    lines.push(...buildWishlistSection(wishlistItems, balance));
     return toCsvResponse(lines, `${dateFrom}_${dateTo}`);
   }
 
@@ -308,11 +297,9 @@ export async function GET(req: NextRequest) {
     trendBase.setDate(now.getDate() - 21);
     const trendStart = getWeekBounds(trendBase).dateFrom;
 
-    const [allTx, weeklyBudgetItems, wishlistItems, balance, targetMonthlyBudgetItems] = await Promise.all([
+    const [allTx, weeklyBudgetItems, targetMonthlyBudgetItems] = await Promise.all([
       getTransactions({ dateFrom: trendStart, dateTo: thisWeek.dateTo }),
       getWeeklyBudgetData(y, m, thisWeek.dateFrom, thisWeek.dateTo),
-      getWishlistItems(),
-      getCurrentBalance(),
       getBudgetData(targetYear, targetMonth),
     ]);
 
@@ -397,7 +384,6 @@ export async function GET(req: NextRequest) {
 
     lines.push(...analysisSection);
     lines.push(...goalsSection);
-    lines.push(...buildWishlistSection(wishlistItems, balance));
     return toCsvResponse(lines, `budget-${targetStart}_${targetEnd}`);
   }
 
@@ -415,11 +401,9 @@ export async function GET(req: NextRequest) {
     const yy2 = m - 2 <= 0 ? y - 1 : y;
     const twoMonthsAgoStart = `${yy2}-${pad(mm2)}-01`;
 
-    const [allTx, budgetItems, wishlistItems, balance] = await Promise.all([
+    const [allTx, budgetItems] = await Promise.all([
       getTransactions({ dateFrom: twoMonthsAgoStart, dateTo: thisMonthEnd }),
       getBudgetData(y, m),
-      getWishlistItems(),
-      getCurrentBalance(),
     ]);
 
     const prevMonthTx = allTx.filter((t) => t.date >= prevMonthStart && t.date <= prevMonthEnd);
@@ -491,23 +475,18 @@ export async function GET(req: NextRequest) {
 
     lines.push(...analysisSection);
     lines.push(...goalsSection);
-    lines.push(...buildWishlistSection(wishlistItems, balance));
     return toCsvResponse(lines, `monthly-${y}-${pad(m)}`);
   }
 
   // ── 既存のperiod（CsvExportコンポーネント向け） ─────────
   const { dateFrom, dateTo, label } = getPeriodRange(period);
   const isMonthPeriod = period === "current" || period === "prev";
-  const isLongPeriod = period === "3months" || period === "year" || period === "all";
+  const isLongPeriod = period === "3months" || period === "6months" || period === "year" || period === "all";
 
-  const [transactions, wishlistItems, balance] = await Promise.all([
-    getTransactions({
-      ...(dateFrom ? { dateFrom } : {}),
-      ...(dateTo ? { dateTo } : {}),
-    }),
-    getWishlistItems(),
-    getCurrentBalance(),
-  ]);
+  const transactions = await getTransactions({
+    ...(dateFrom ? { dateFrom } : {}),
+    ...(dateTo ? { dateTo } : {}),
+  });
 
   const lines: string[] = [];
 
@@ -580,6 +559,6 @@ export async function GET(req: NextRequest) {
     lines.push(...buildTxRows(transactions));
   }
 
-  lines.push(...buildWishlistSection(wishlistItems, balance));
+  lines.push(...goalsSection);
   return toCsvResponse(lines, label);
 }

@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { createGoal } from "@/app/actions/goals";
 import type { Category } from "@/types/database";
+import { Plus } from "lucide-react";
 
 export default function GoalForm({ categories }: { categories: Category[] }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<"savings" | "expense">("savings");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const expenseCategories = categories.filter(
     (c) => c.type === "expense" || c.type === "both"
@@ -16,19 +18,25 @@ export default function GoalForm({ categories }: { categories: Category[] }) {
   async function handleSubmit(e: { preventDefault(): void; currentTarget: HTMLFormElement }) {
     e.preventDefault();
     setLoading(true);
+    setError("");
     const formData = new FormData(e.currentTarget);
-    await createGoal(formData);
-    setOpen(false);
-    setLoading(false);
+    try {
+      await createGoal(formData);
+      setOpen(false);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "目標を保存できませんでした。");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 transition-colors"
+        onClick={() => { setError(""); setOpen(true); }}
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-700"
       >
-        + 目標を追加
+        <Plus className="size-4" /> 新しい目標
       </button>
 
       {open && (
@@ -96,6 +104,14 @@ export default function GoalForm({ categories }: { categories: Category[] }) {
               />
             </div>
 
+            {type === "savings" && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-500">現在の貯蓄額（円）</label>
+                <input name="saved_amount" type="number" required min={0} defaultValue={0} className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" />
+                <p className="text-[11px] text-gray-400">この目標のために、すでに確保している金額です。</p>
+              </div>
+            )}
+
             {/* 支出削減：カテゴリ */}
             {type === "expense" && (
               <div className="space-y-1.5">
@@ -144,6 +160,7 @@ export default function GoalForm({ categories }: { categories: Category[] }) {
                 キャンセル
               </button>
             </div>
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           </form>
         </div>
       )}

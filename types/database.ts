@@ -3,8 +3,22 @@ export type PayMethod = "Credit" | "Cash";
 export type CategoryType = "income" | "expense" | "both";
 export type FeatureRequestStatus = "検討中" | "次に対応" | "対応済み";
 export type FeatureRequestCategory = "収支入力" | "予算" | "分析" | "通知" | "インポート" | "設定" | "その他";
-export type WishlistPriority = "" | "next" | "high" | "medium" | "low";
 export type AnalysisView = "monthly" | "weekly" | "yearly";
+export type GoalType = "savings" | "expense";
+
+export type Goal = {
+  id: number;
+  title: string;
+  type: GoalType;
+  target_amount: number;
+  deadline: string | null;
+  category_id: number | null;
+  start_balance: number;
+  saved_amount: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
 export type AnalysisAdvice = {
   id: number;
@@ -31,18 +45,6 @@ export type AnalysisResult = {
 
 export type AnalysisResultWithAdvices = AnalysisResult & {
   analysis_advices: AnalysisAdvice[];
-};
-
-export type WishlistItem = {
-  id: number;
-  title: string;
-  price: number;
-  url: string;
-  memo: string;
-  priority: WishlistPriority;
-  purchased_at: string | null;
-  created_at: string;
-  updated_at: string;
 };
 
 export type Category = {
@@ -132,16 +134,19 @@ export type Database = {
         Row: Category;
         Insert: Omit<Category, "id">;
         Update: Partial<Omit<Category, "id">>;
+        Relationships: [];
       };
       transactions: {
         Row: Transaction;
         Insert: Omit<Transaction, "id" | "created_at">;
         Update: Partial<Omit<Transaction, "id" | "created_at">>;
+        Relationships: [];
       };
       budgets: {
         Row: Budget;
         Insert: Omit<Budget, "id">;
         Update: Partial<Omit<Budget, "id">>;
+        Relationships: [];
       };
       feature_requests: {
         Row: FeatureRequest;
@@ -151,15 +156,24 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Omit<FeatureRequest, "id" | "created_at">>;
+        Relationships: [];
       };
-      wishlist_items: {
-        Row: WishlistItem;
-        Insert: Omit<WishlistItem, "id" | "created_at" | "updated_at" | "purchased_at"> & {
-          purchased_at?: string | null;
+      goals: {
+        Row: Goal;
+        Insert: Omit<Goal, "id" | "created_at" | "updated_at"> & {
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Omit<WishlistItem, "id" | "created_at">>;
+        Update: Partial<Omit<Goal, "id" | "created_at">>;
+        Relationships: [
+          {
+            foreignKeyName: "goals_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       analysis_results: {
         Row: AnalysisResult;
@@ -168,6 +182,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Omit<AnalysisResult, "id" | "created_at">>;
+        Relationships: [];
       };
       analysis_advices: {
         Row: AnalysisAdvice;
@@ -177,6 +192,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Omit<AnalysisAdvice, "id" | "analysis_result_id" | "created_at">>;
+        Relationships: [];
       };
     };
   };
