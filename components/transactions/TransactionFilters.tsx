@@ -1,269 +1,119 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { parseTransactionFilters, transactionFilterParams, type TransactionFiltersValue } from "@/lib/transactions/filters";
 import type { Category } from "@/types/database";
 
-type Props = {
-  categories: Category[];
-  defaultMonth?: string;
-  categoryTotals?: {
-    id: number;
-    name: string;
-    color: string;
-    amount: number;
-  }[];
-};
+type Props = { categories: Category[]; filters: TransactionFiltersValue; monthOptions: string[] };
+type MultipleField = "months" | "types" | "categoryIds" | "payMethods" | "needs";
 
-export default function TransactionFilters({ categories, defaultMonth = "", categoryTotals = [] }: Props) {
+export default function TransactionFilters({ categories, filters, monthOptions }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [draft, setDraft] = useState(filters);
+  const [isPending, startTransition] = useTransition();
+  const latestDraft = useRef(filters);
+  const lastRequested = useRef(transactionFilterParams(filters).toString());
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const composing = useRef(false);
 
-  function update(key: string, value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value);
-    else params.delete(key);
-    router.push(`/transactions?${params.toString()}`);
+  function cancelSearch() {
+    if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+    searchTimer.current = null;
   }
 
-  function resetFilters() {
-    router.push("/transactions");
+  function navigate(next: TransactionFiltersValue) {
+    cancelSearch();
+    const params = transactionFilterParams(parseTransactionFilters(transactionFilterParams(next)));
+    lastRequested.current = params.toString();
+    startTransition(() => router.replace(params.size ? `/transactions?${params}` : "/transactions", { scroll: false }));
   }
 
-  function handleSearch(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    update("q", String(formData.get("q") ?? "").trim());
+  function update(next: TransactionFiltersValue, delaySearch = false) {
+    latestDraft.current = next;
+    setDraft(next);
+    cancelSearch();
+    if (delaySearch) {
+      if (!composing.current) searchTimer.current = setTimeout(() => navigate(latestDraft.current), 350);
+    } else {
+      navigate(next);
+    }
   }
 
-  const monthParam = searchParams.get("month");
-  const currentMonth = monthParam === "all" ? "" : (monthParam ?? defaultMonth);
-  const currentQ = searchParams.get("q") ?? "";
-  const selectedType = searchParams.get("type") ?? "";
-  const selectedPayMethod = searchParams.get("pay_method") ?? "";
-  const selectedCategoryId = searchParams.get("category_id") ?? "";
-  const selectedNeeds = searchParams.get("needs") ?? "";
-  const maxCategoryTotal = Math.max(...categoryTotals.map((c) => c.amount), 1);
-  const hasActiveFilters =
-    currentQ ||
-    selectedType ||
-    selectedPayMethod ||
-    selectedCategoryId ||
-    selectedNeeds ||
-    monthParam === "all" ||
-    (monthParam && monthParam !== defaultMonth);
+  useEffect(() => () => {
+    if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+  }, []);
+
+  useEffect(() => {
+    const applied = transactionFilterParams(filters).toString();
+    if (isPending || searchTimer.current !== null || composing.current || applied === lastRequested.current) return;
+    // Restore browser-history/externally supplied URL filters without overwriting in-flight selections.
+    latestDraft.current = filters;
+    lastRequested.current = applied;
+    setDraft(filters);
+  }, [filters, isPending]);
+
+  function toggle(field: MultipleField, value: string) {
+    const current = latestDraft.current;
+    update({ ...current, [field]: current[field].includes(value)
+      ? current[field].filter((item) => item !== value) : [...current[field], value] });
+  }
+
+  function apply(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!composing.current) navigate(latestDraft.current);
+  }
+
+  const groups: { field: MultipleField; label: string; options: { value: string; label: string }[] }[] = [
+    { field: "months", label: "月", options: monthOptions.map((month) => ({ value: month, label: `${month.slice(0, 4)}年${Number(month.slice(5))}月` })) },
+    { field: "types", label: "収支", options: [{ value: "income", label: "収入" }, { value: "expense", label: "支出" }] },
+    { field: "payMethods", label: "支払方法", options: [{ value: "Cash", label: "現金" }, { value: "Credit", label: "クレジット" }] },
+    { field: "needs", label: "確認する項目", options: [{ value: "category", label: "カテゴリなし" }, { value: "store", label: "店舗なし（支出）" }] },
+    { field: "categoryIds", label: "カテゴリ", options: categories.map((category) => ({ value: String(category.id), label: category.name })) },
+  ];
 
   return (
-    <aside className="rounded-lg border bg-white p-3 sm:p-4 lg:sticky lg:top-20">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-gray-900">絞り込み</h2>
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="text-[11px] font-bold text-gray-500 hover:text-gray-900"
-          >
-            条件リセット
-          </button>
-        )}
-      </div>
-
-      <form onSubmit={handleSearch} className="mb-3">
-        <label className="mb-1.5 block text-[11px] font-bold text-gray-500">検索</label>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-1.5">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              key={currentQ}
-              name="q"
-              defaultValue={currentQ}
-              placeholder="内容・店舗で検索"
-              className="h-10 pl-9 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-3 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50"
-          >
-            検索
-          </button>
+    <aside aria-busy={isPending} className="min-w-0 rounded-lg border bg-white p-4 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
+      <form onSubmit={apply} className="space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">絞り込み</h2>
+          <button type="button" onClick={() => update({ months: [], types: [], payMethods: [], categoryIds: [], needs: [], q: "" })} className="min-h-11 text-xs text-indigo-600">すべて解除</button>
         </div>
-        {currentQ && (
-          <button
-            type="button"
-            onClick={() => update("q", "")}
-            className="mt-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
-          >
-            検索を解除
-          </button>
+        <p className="text-xs leading-relaxed text-gray-500">選択すると自動で反映されます。各項目は複数選択でき、未選択の項目はすべて表示します。</p>
+        <label className="block space-y-2 text-sm font-medium text-gray-600">
+          <span>検索</span>
+          <input type="search" value={draft.q} maxLength={200}
+            onChange={(event) => update({ ...latestDraft.current, q: event.target.value }, true)}
+            onCompositionStart={() => { composing.current = true; cancelSearch(); }}
+            onCompositionEnd={(event) => { composing.current = false; update({ ...latestDraft.current, q: event.currentTarget.value }, true); }}
+            placeholder="内容・店舗で検索" className="h-11 w-full min-w-0 rounded-md border px-3 text-base font-normal" />
+        </label>
+        {draft.dateFrom && draft.dateTo && (
+          <div className="rounded-md bg-indigo-50 p-3 text-xs text-indigo-700">
+            <p>{draft.dateFrom}〜{draft.dateTo}の範囲を適用中</p>
+            <button type="button" onClick={() => update({ ...latestDraft.current, dateFrom: undefined, dateTo: undefined })} className="mt-2 underline">期間範囲を解除して月で選ぶ</button>
+          </div>
         )}
+        {groups.map(({ field, label, options }) => (
+          <details key={field} className="rounded-md border">
+            <summary className="cursor-pointer px-3 py-3 text-sm font-medium text-gray-700">{label} <span className="text-xs font-normal text-gray-500">{draft[field].length ? `${draft[field].length}件選択` : "すべて"}</span></summary>
+            <fieldset disabled={field === "months" && !!draft.dateFrom} className="min-w-0 border-t p-2 disabled:opacity-50">
+              <legend className="sr-only">{label}を複数選択</legend>
+              <button type="button" onClick={() => update({ ...latestDraft.current, [field]: [] })} className="min-h-11 px-2 text-xs text-indigo-600">選択を解除（すべて表示）</button>
+              <div className="max-h-48 overflow-y-auto">
+                {options.map((option) => (
+                  <label key={option.value} className="flex min-h-11 cursor-pointer items-center gap-2 rounded px-2 text-sm hover:bg-gray-50">
+                    <input type="checkbox" checked={draft[field].includes(option.value)} onChange={() => toggle(field, option.value)} className="h-4 w-4 shrink-0 accent-indigo-600" />
+                    <span className="min-w-0 break-words">{option.label}</span>
+                  </label>
+                ))}
+                {options.length === 0 && <p className="p-2 text-xs text-gray-500">選択できる項目がありません。</p>}
+              </div>
+            </fieldset>
+          </details>
+        ))}
+        <p role="status" className="text-xs text-gray-500">{isPending ? "絞り込みを更新中…" : "選択した条件を自動で適用します。"}</p>
       </form>
-
-      <div className="mb-3">
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <label className="block text-[11px] font-bold text-gray-500">月</label>
-          {currentMonth && (
-            <button
-              type="button"
-              onClick={() => update("month", "all")}
-              className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
-            >
-              解除
-            </button>
-          )}
-        </div>
-        <Input
-          type="month"
-          className="h-10 text-sm"
-          value={currentMonth}
-          onChange={(e) => {
-            update("month", e.target.value || "all");
-          }}
-        />
-      </div>
-
-      <div className="mb-3">
-        <label className="mb-1.5 block text-[11px] font-bold text-gray-500">収支</label>
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            ["", "すべて"],
-            ["income", "収入"],
-            ["expense", "支出"],
-          ].map(([value, label]) => (
-            <button
-              key={value || "all"}
-              type="button"
-              onClick={() => update("type", value)}
-              className={`h-8 rounded-full border px-3 text-xs font-bold transition-colors ${
-                selectedType === value
-                  ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-                  : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-3">
-        <label className="mb-1.5 block text-[11px] font-bold text-gray-500">支払方法</label>
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            ["", "すべて"],
-            ["Cash", "Cash"],
-            ["Credit", "Credit"],
-          ].map(([value, label]) => (
-            <button
-              key={value || "all"}
-              type="button"
-              onClick={() => update("pay_method", value)}
-              className={`h-8 rounded-full border px-3 text-xs font-bold transition-colors ${
-                selectedPayMethod === value
-                  ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-                  : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-3">
-        <label className="mb-1.5 block text-[11px] font-bold text-gray-500">確認する項目</label>
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            ["", "すべて"],
-            ["category", "カテゴリなし"],
-            ["store", "店舗なし"],
-          ].map(([value, label]) => (
-            <button
-              key={value || "all"}
-              type="button"
-              onClick={() => update("needs", value)}
-              className={`h-8 rounded-full border px-3 text-xs font-bold transition-colors ${
-                selectedNeeds === value
-                  ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-                  : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-[11px] font-bold text-gray-500">カテゴリ</label>
-        <Select
-          value={selectedCategoryId}
-          onValueChange={(v) => update("category_id", v === "all" ? "" : (v ?? ""))}
-        >
-          <SelectTrigger className="h-10 text-sm">
-            <SelectValue placeholder="すべてのカテゴリ" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={String(c.id)}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {categoryTotals.length > 0 && (
-          <div className="mt-3 space-y-2">
-            {categoryTotals.slice(0, 5).map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() =>
-                  update(
-                    "category_id",
-                    selectedCategoryId === String(category.id) ? "" : String(category.id)
-                  )
-                }
-                className={`grid w-full grid-cols-[10px_1fr_auto] items-center gap-2 rounded-md px-1 py-0.5 text-left text-xs transition-colors ${
-                  selectedCategoryId === String(category.id)
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-500 hover:bg-gray-50"
-                }`}
-              >
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: category.color }}
-                />
-                <span className="min-w-0">
-                  <span className="block truncate font-bold text-gray-600">{category.name}</span>
-                  <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-gray-100">
-                    <span
-                      className="block h-full rounded-full"
-                      style={{
-                        width: `${Math.max(8, Math.round((category.amount / maxCategoryTotal) * 100))}%`,
-                        backgroundColor: category.color,
-                      }}
-                    />
-                  </span>
-                </span>
-                <span className="font-bold tabular-nums text-gray-600">
-                  ¥{category.amount.toLocaleString("ja-JP")}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
     </aside>
   );
 }

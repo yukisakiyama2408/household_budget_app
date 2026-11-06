@@ -6,10 +6,11 @@ type Props = {
   active: "transactions" | "fixed" | "settlements";
   month?: string;
   transactionParams?: Record<string, string | undefined>;
+  transactionSearch?: string;
 };
 
-export default function TransactionSectionTabs({ active, month, transactionParams = {} }: Props) {
-  const params = new URLSearchParams();
+export default function TransactionSectionTabs({ active, month, transactionParams = {}, transactionSearch }: Props) {
+  const params = new URLSearchParams(transactionSearch);
   for (const [key, value] of Object.entries(transactionParams)) {
     if (value) params.set(key, value);
   }
