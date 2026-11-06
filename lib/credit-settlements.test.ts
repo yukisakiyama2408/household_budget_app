@@ -120,7 +120,7 @@ test("saving and correcting an amount preserves balance accounting and never dup
   assert.equal(tables.credit_settlements.length, 3); // Same month is updated, not inserted again.
   assert.deepEqual(tables.transactions, originalTransactions);
   assert.deepEqual(writes, ["credit_settlements"]);
-  for (const path of ["/transactions/settlements", "/", "/daily", "/monthly"]) assert.ok(paths.includes(path));
+  for (const path of ["/transactions/settlements", "/", "/analysis", "/analysis/reviews/checkin"]) assert.ok(paths.includes(path));
 
   await actions.upsertCreditSettlement(2026, 11, 0, "2026-11-05");
   assert.equal(await data.getCurrentBalance(), 225000);

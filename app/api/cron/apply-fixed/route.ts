@@ -16,9 +16,10 @@ export async function GET(request: Request) {
 
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/analysis");
+  revalidatePath("/analysis/reviews/checkin");
   revalidatePath("/transactions/fixed", "layout");
   revalidatePath("/budget");
-  revalidatePath("/monthly");
 
   return NextResponse.json({ year, month, ...result });
 }

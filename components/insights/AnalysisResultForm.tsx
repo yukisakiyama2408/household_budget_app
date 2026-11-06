@@ -47,7 +47,7 @@ export default function AnalysisResultForm({ target, analysisView }: Props) {
           required
           maxLength={10000}
           rows={8}
-          placeholder="ChatGPTの分析結果を貼り付けてください"
+          placeholder="気づいたことや、ChatGPTの分析結果を入力してください"
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm leading-relaxed outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         />
       </label>

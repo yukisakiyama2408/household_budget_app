@@ -9,9 +9,10 @@ export type AnalysisPeriodOption = { value: string; label: string };
 type Props = {
   value: string;
   options: AnalysisPeriodOption[];
+  view?: string;
 };
 
-export default function AnalysisPeriodSelector({ value, options }: Props) {
+export default function AnalysisPeriodSelector({ value, options, view }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,6 +21,7 @@ export default function AnalysisPeriodSelector({ value, options }: Props) {
   function navigate(nextValue: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("period", nextValue);
+    if (view) params.set("view", view);
     params.delete("month");
     params.delete("year");
     params.delete("week");
@@ -27,7 +29,7 @@ export default function AnalysisPeriodSelector({ value, options }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
       <Button
         variant="outline"
         size="icon"
@@ -37,12 +39,12 @@ export default function AnalysisPeriodSelector({ value, options }: Props) {
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <label>
+      <label className="min-w-0 flex-1">
         <span className="sr-only">分析対象期間</span>
         <select
           value={value}
           onChange={(event) => navigate(event.target.value)}
-          className="h-9 min-w-48 rounded-md border border-gray-300 bg-white px-3 text-center text-sm font-semibold text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="h-11 w-full min-w-0 max-w-full rounded-md border border-gray-300 bg-white px-2 text-center text-sm font-semibold text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 sm:w-64"
         >
           {options.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>

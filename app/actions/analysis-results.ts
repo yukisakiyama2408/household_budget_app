@@ -59,7 +59,8 @@ export async function createAnalysisResult(
     }
   }
 
-  revalidatePath("/monthly");
+  revalidatePath("/analysis/reviews");
+  revalidatePath("/budget");
   return { ok: true, message: "分析結果を登録しました。" };
 }
 
@@ -74,5 +75,6 @@ export async function toggleAnalysisAdvice(id: number, completed: boolean): Prom
     updated_at: now,
   }).eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath("/monthly");
+  revalidatePath("/analysis/reviews");
+  revalidatePath("/budget");
 }

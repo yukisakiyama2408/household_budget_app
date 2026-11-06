@@ -120,7 +120,7 @@ export default async function BudgetPage({ searchParams }: Props) {
     periodLabel: priorAnalysis.period_label,
     advices: priorAnalysis.analysis_advices.map((advice) => advice.content),
   } : undefined;
-  const analysisHref = `/monthly?tab=insights&view=${priorPeriod.view}&period=${priorPeriod.period}`;
+  const analysisHref = `/analysis/reviews?view=${priorPeriod.view}&period=${priorPeriod.period}`;
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8">

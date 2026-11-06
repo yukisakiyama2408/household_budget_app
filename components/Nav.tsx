@@ -10,7 +10,7 @@ import type { FeatureRequest } from "@/types/database";
 const links = [
   { href: "/transactions", label: "収支" },
   { href: "/budget", label: "予算" },
-  { href: "/monthly", label: "分析" },
+  { href: "/analysis", label: "分析" },
 ];
 
 const settingsLink = { href: "/settings", label: "設定" };

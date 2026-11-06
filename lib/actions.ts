@@ -33,6 +33,8 @@ export async function createTransaction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/analysis");
+  revalidatePath("/analysis/reviews/checkin");
   redirect("/transactions");
 }
 
@@ -64,6 +66,8 @@ export async function updateTransaction(id: number, formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/analysis");
+  revalidatePath("/analysis/reviews/checkin");
   redirect("/transactions");
 }
 
@@ -79,6 +83,8 @@ export async function deleteTransaction(id: number) {
 
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/analysis");
+  revalidatePath("/analysis/reviews/checkin");
   redirect("/transactions");
 }
 
@@ -171,8 +177,8 @@ export async function upsertCreditSettlement(year: number, month: number, amount
 
   revalidatePath("/transactions/settlements");
   revalidatePath("/");
-  revalidatePath("/daily");
-  revalidatePath("/monthly");
+  revalidatePath("/analysis");
+  revalidatePath("/analysis/reviews/checkin");
 }
 
 export async function createFixedExpense(formData: FormData) {
@@ -290,6 +296,8 @@ export async function importTransactions(
 
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/analysis");
+  revalidatePath("/analysis/reviews/checkin");
   return { imported };
 }
 
@@ -391,8 +399,9 @@ export async function applyFixedExpensesAction(
   const result = await applyFixedExpenses(year, month);
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/analysis");
+  revalidatePath("/analysis/reviews/checkin");
   revalidatePath("/transactions/fixed", "layout");
   revalidatePath("/budget");
-  revalidatePath("/monthly");
   return result;
 }

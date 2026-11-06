@@ -8,7 +8,7 @@ export default function CheckinBanner({ weekLabel }: { weekLabel: string }) {
         <p className="text-xs text-blue-700 mt-0.5">{weekLabel}</p>
       </div>
       <Link
-        href="/checkin"
+        href="/analysis/reviews/checkin"
         className="flex-shrink-0 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
       >
         チェックインする →

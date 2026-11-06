@@ -7,7 +7,8 @@ function revalidateCategoryViews() {
   revalidatePath("/settings/categories");
   revalidatePath("/transactions", "layout");
   revalidatePath("/budget");
-  revalidatePath("/monthly");
+  revalidatePath("/analysis");
+  revalidatePath("/analysis/reviews/checkin");
   revalidatePath("/budget/goals");
   revalidatePath("/import");
   revalidatePath("/");

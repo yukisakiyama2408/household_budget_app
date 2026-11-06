@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { resolveAnalysisSelection, switchAnalysisView } from "@/lib/analysis-navigation";
 
 type View = "monthly" | "weekly" | "yearly" | "daily";
 
@@ -11,24 +12,21 @@ const tabs: { key: View; label: string }[] = [
   { key: "daily", label: "日次" },
 ];
 
-export default function DashboardTabs({ activeView, excludeDaily = false }: { activeView: View; excludeDaily?: boolean }) {
+export default function DashboardTabs({ activeView, period, excludeDaily = false }: { activeView: View; period: string; excludeDaily?: boolean }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   function switchView(view: View) {
-    const params = new URLSearchParams();
-    params.set("view", view);
-    const tab = searchParams.get("tab");
-    if (tab) params.set("tab", tab);
-
-    router.push(`?${params.toString()}`);
+    const next = switchAnalysisView(resolveAnalysisSelection({ view: activeView, period }), view);
+    router.push(`${pathname}?${new URLSearchParams({ view: next.view, period: next.period })}`);
   }
 
   return (
     <select
+      aria-label="集計単位"
       value={activeView}
       onChange={(e) => switchView(e.target.value as View)}
-      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+      className="h-11 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
     >
       {tabs.filter((tab) => !excludeDaily || tab.key !== "daily").map(({ key, label }) => (
         <option key={key} value={key}>{label}</option>

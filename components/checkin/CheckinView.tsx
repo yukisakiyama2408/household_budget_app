@@ -21,7 +21,7 @@ function DiffBadge({ pct, higherIsWorse }: { pct: number | null; higherIsWorse?:
   const color = isBad ? "text-red-500" : "text-green-600";
   return (
     <span className={`text-xs ${color}`}>
-      {isUp ? "▲" : "▼"}{Math.abs(pct)}% vs先週
+      {isUp ? "▲" : "▼"}{Math.abs(pct)}% vs前週
     </span>
   );
 }
@@ -67,23 +67,31 @@ export default function CheckinView({
 }) {
   const [done, setDone] = useState(alreadyCheckedIn);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleCheckin() {
     setLoading(true);
-    await recordCheckin(weekStart);
-    setDone(true);
-    setLoading(false);
+    setError("");
+    try {
+      await recordCheckin(weekStart);
+      setDone(true);
+    } catch {
+      setError("保存できませんでした。もう一度お試しください。");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div className="space-y-6">
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       {done ? (
         <div className="bg-green-50 border border-green-200 rounded-md p-4 text-sm font-medium text-green-800">
-          ✓ 今週（{currentWeek.label}）のチェックイン完了
+          ✓ 対象週（{currentWeek.label}）のチェックイン完了
         </div>
       ) : (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 flex items-center justify-between gap-4">
-          <p className="text-sm text-blue-900">今週（{currentWeek.label}）のチェックインをしましょう</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-blue-900">対象週（{currentWeek.label}）のチェックインをしましょう</p>
           <button
             onClick={handleCheckin}
             disabled={loading}
@@ -96,7 +104,7 @@ export default function CheckinView({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">今週の収支</CardTitle>
+          <CardTitle className="text-base">対象週の収支</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <SummaryRow label="支出" current={currentWeek.expense} prev={prevWeek.expense} higherIsWorse />
@@ -116,13 +124,13 @@ export default function CheckinView({
           <CardHeader>
             <CardTitle className="text-base">カテゴリ別支出</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-muted-foreground">
                   <th className="pb-2 font-medium text-left">カテゴリ</th>
-                  <th className="pb-2 font-medium text-right">今週</th>
-                  <th className="pb-2 font-medium text-right">先週</th>
+                  <th className="pb-2 font-medium text-right">対象週</th>
+                  <th className="pb-2 font-medium text-right">前週</th>
                   <th className="pb-2 font-medium text-right">差分</th>
                 </tr>
               </thead>
