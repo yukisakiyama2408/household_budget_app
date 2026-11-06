@@ -4,10 +4,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { applyFixedExpensesAction } from "@/lib/actions";
 
-export default function ApplyFixedExpensesButton() {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+export default function ApplyFixedExpensesButton({ year, month }: { year: number; month: number }) {
   const [result, setResult] = useState<{ applied: number; skipped: number } | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -19,32 +16,11 @@ export default function ApplyFixedExpensesButton() {
     });
   }
 
-  const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
-
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <select
-          value={year}
-          onChange={(e) => { setYear(Number(e.target.value)); setResult(null); }}
-          className="border rounded px-2 py-1.5 text-sm bg-white"
-        >
-          {years.map((y) => (
-            <option key={y} value={y}>{y}年</option>
-          ))}
-        </select>
-        <select
-          value={month}
-          onChange={(e) => { setMonth(Number(e.target.value)); setResult(null); }}
-          className="border rounded px-2 py-1.5 text-sm bg-white"
-        >
-          {months.map((m) => (
-            <option key={m} value={m}>{m}月</option>
-          ))}
-        </select>
-        <Button onClick={handleApply} disabled={isPending} size="sm">
-          {isPending ? "適用中..." : "適用する"}
+        <Button onClick={handleApply} disabled={isPending} className="min-h-11">
+          {isPending ? "適用中..." : `${year}年${month}月に適用する`}
         </Button>
       </div>
       {result && (

@@ -35,3 +35,7 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 # household_budget_app
+
+## 画面構成の再編
+
+機能の所属、正式URL、旧URLの転送先、期間の引き継ぎ、実装順は [画面構成・URLの設計](docs/information-architecture.md) を参照してください。

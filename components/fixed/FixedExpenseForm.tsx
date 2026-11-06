@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Category, FixedExpense } from "@/types/database";
+import { fixedExpensesReturnTo } from "@/lib/fixed-expense-navigation";
 
 type Props = {
   categories: Category[];
@@ -19,6 +20,7 @@ type Props = {
   action: (formData: FormData) => Promise<void>;
   submitLabel: string;
   onDelete?: () => void;
+  returnTo: string;
 };
 
 export default function FixedExpenseForm({
@@ -27,6 +29,7 @@ export default function FixedExpenseForm({
   action,
   submitLabel,
   onDelete,
+  returnTo,
 }: Props) {
   const [type, setType] = useState<string>(defaultValues?.type ?? "expense");
 
@@ -36,6 +39,7 @@ export default function FixedExpenseForm({
 
   return (
     <form action={action} className="space-y-5">
+      <input type="hidden" name="returnTo" value={fixedExpensesReturnTo(returnTo)} />
       {/* 収支区分 */}
       <div className="space-y-1.5">
         <Label>収支区分</Label>

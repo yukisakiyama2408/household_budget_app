@@ -1,40 +1,14 @@
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
-import { notFound } from "next/navigation";
-import EditFixedExpenseForm from "@/components/fixed/EditFixedExpenseForm";
-import { getFixedExpenseById, getCategories } from "@/lib/data";
+import { redirect } from "next/navigation";
+import { fixedExpensesHref, fixedExpensesReturnTo, legacyFixedExpenseMonth } from "@/lib/fixed-expense-navigation";
 
-type Props = {
+export default async function LegacyEditFixedExpensePage({ searchParams, params }: {
+  searchParams: Promise<{ returnTo?: string; year?: string; month?: string }>;
   params: Promise<{ id: string }>;
-};
-
-export default async function EditFixedExpensePage({ params }: Props) {
+}) {
+  const query = await searchParams;
+  const returnTo = query.returnTo
+    ? fixedExpensesReturnTo(query.returnTo)
+    : fixedExpensesHref(legacyFixedExpenseMonth(query.year, query.month));
   const { id } = await params;
-  const [fixedExpense, categories] = await Promise.all([
-    getFixedExpenseById(parseInt(id)).catch(() => null),
-    getCategories(),
-  ]);
-
-  if (!fixedExpense) notFound();
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 py-8">
-        <Link
-          href="/fixed"
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          固定費一覧に戻る
-        </Link>
-        <h1 className="text-xl font-bold mb-6">固定費の編集</h1>
-        <div className="bg-white rounded-lg border p-6">
-          <EditFixedExpenseForm
-            fixedExpense={fixedExpense}
-            categories={categories}
-          />
-        </div>
-      </div>
-    </div>
-  );
+  redirect(`/transactions/fixed/${encodeURIComponent(id)}/edit?returnTo=${encodeURIComponent(returnTo)}`);
 }

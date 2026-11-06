@@ -3,6 +3,17 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
+function revalidateCategoryViews() {
+  revalidatePath("/settings/categories");
+  revalidatePath("/transactions", "layout");
+  revalidatePath("/budget");
+  revalidatePath("/monthly");
+  revalidatePath("/goals");
+  revalidatePath("/goals/manage");
+  revalidatePath("/import");
+  revalidatePath("/");
+}
+
 export async function createCategory(formData: FormData) {
   const supabase = await createClient();
   const name = (formData.get("name") as string).trim();
@@ -17,7 +28,7 @@ export async function createCategory(formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from("categories") as any).insert({ name, type, color, display_order: nextOrder, offset_category_id });
   if (error) throw new Error(error.message);
-  revalidatePath("/budget");
+  revalidateCategoryViews();
 }
 
 export async function updateCategory(id: number, formData: FormData) {
@@ -31,8 +42,7 @@ export async function updateCategory(id: number, formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from("categories") as any).update({ name, type, color, offset_category_id }).eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath("/budget");
-  revalidatePath("/transactions");
+  revalidateCategoryViews();
 }
 
 export async function deleteCategory(id: number) {
@@ -44,6 +54,5 @@ export async function deleteCategory(id: number) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from("categories") as any).delete().eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath("/budget");
-  revalidatePath("/transactions");
+  revalidateCategoryViews();
 }

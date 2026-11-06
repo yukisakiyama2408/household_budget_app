@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { applyFixedExpenses } from "@/lib/fixed-expenses";
+import { fixedExpensesReturnTo } from "@/lib/fixed-expense-navigation";
 
 export async function createTransaction(formData: FormData) {
   const supabase = await createClient();
@@ -195,8 +196,8 @@ export async function createFixedExpense(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/fixed");
-  redirect("/fixed");
+  revalidatePath("/transactions/fixed", "layout");
+  redirect(fixedExpensesReturnTo(formData.get("returnTo")));
 }
 
 export async function updateFixedExpense(id: number, formData: FormData) {
@@ -227,11 +228,11 @@ export async function updateFixedExpense(id: number, formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/fixed");
-  redirect("/fixed");
+  revalidatePath("/transactions/fixed", "layout");
+  redirect(fixedExpensesReturnTo(formData.get("returnTo")));
 }
 
-export async function deleteFixedExpense(id: number) {
+export async function deleteFixedExpense(id: number, returnTo?: string) {
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -241,8 +242,8 @@ export async function deleteFixedExpense(id: number) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/fixed");
-  redirect("/fixed");
+  revalidatePath("/transactions/fixed", "layout");
+  redirect(fixedExpensesReturnTo(returnTo));
 }
 
 export async function fetchTransactionsForDuplicateCheck(
@@ -386,6 +387,8 @@ export async function applyFixedExpensesAction(
   const result = await applyFixedExpenses(year, month);
   revalidatePath("/");
   revalidatePath("/transactions");
-  revalidatePath("/fixed");
+  revalidatePath("/transactions/fixed", "layout");
+  revalidatePath("/budget");
+  revalidatePath("/monthly");
   return result;
 }

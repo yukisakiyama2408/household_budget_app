@@ -4,6 +4,7 @@ import { Download, MoreHorizontal, Upload } from "lucide-react";
 import { getTransactions, getCategories } from "@/lib/data";
 import TransactionFilters from "@/components/transactions/TransactionFilters";
 import NewEntryButton from "@/components/NewEntryButton";
+import TransactionSectionTabs from "@/components/transactions/TransactionSectionTabs";
 
 type Props = {
   searchParams: Promise<{
@@ -133,6 +134,10 @@ export default async function TransactionsPage({ searchParams }: Props) {
             </Link>
             <NewEntryButton />
           </div>
+        </div>
+
+        <div className="mb-5">
+          <TransactionSectionTabs active="transactions" month={selectedMonth} transactionParams={params} />
         </div>
 
         <section className="mb-3 grid gap-2 md:grid-cols-[1.25fr_.9fr_.9fr]">
