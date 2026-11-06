@@ -1,0 +1,30 @@
+{
+  "measurement": "synthetic-db-8ms-per-query-and-local-cpu; not production latency",
+  "daily": {
+    "queries": 4,
+    "maxConcurrent": 1,
+    "payloadBytes": 113189,
+    "resultHash": "35a521051707c99284e2b7a34b96d880e68e67042eb46dbc8e41c3d47a152aea",
+    "medianSyntheticMs": 36.73
+  },
+  "balance": {
+    "queries": 2,
+    "maxConcurrent": 2,
+    "payloadBytes": 113187,
+    "resultHash": "2359d1c911e0e0f0d09e18eaec6c096320ae819f6c07a25a8e5283981230a8fe",
+    "medianSyntheticMs": 9.316
+  },
+  "yearly": {
+    "queries": 4,
+    "maxConcurrent": 4,
+    "payloadBytes": 13936,
+    "resultHash": "a09d35840e0ff1f0baf7e24a7c1e822f78b13d24c07678ad47a81c6f777b3b0c",
+    "medianSyntheticMs": 9.822
+  },
+  "duplicates": {
+    "incomingRows": 2000,
+    "existingRows": 10000,
+    "medianLocalMs": 209.243,
+    "resultHash": "b3338417285ed14c68df412365612aeda411ea2f8c5c1a33437b697e312c8b0e"
+  }
+}

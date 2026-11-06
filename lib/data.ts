@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/utils/supabase/server";
 import type { AnalysisResultWithAdvices, Budget, Category, CreditSettlement, FeatureRequest, FixedExpense, FixedExpenseLog, Goal, Transaction } from "@/types/database";
 import { getJapanToday, getWeekBudgetPeriods } from "@/lib/dateUtils";
@@ -30,6 +31,18 @@ export async function getAnalysisResults(): Promise<AnalysisResultWithAdvices[]>
       (a, b) => a.display_order - b.display_order
     ),
   }));
+}
+
+export async function getAnalysisResultForPeriod(view: "monthly" | "weekly", dateFrom: string, dateTo: string): Promise<AnalysisResultWithAdvices | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("analysis_results")
+    .select("*, analysis_advices(*)")
+    .eq("analysis_view", view).eq("date_from", dateFrom).eq("date_to", dateTo)
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const result = data as AnalysisResultWithAdvices;
+  return { ...result, analysis_advices: [...(result.analysis_advices ?? [])].sort((a, b) => a.display_order - b.display_order) };
 }
 
 export function calcPace(
@@ -116,17 +129,15 @@ async function fetchAllTransactions(
 export async function getDailyData(year: number): Promise<MonthDailyData[]> {
   const supabase = await createClient();
 
-  // 選択年より前の収支合計（残高計算: 収入 - Cash支出 のみ）
-  const prevRows = await fetchAllTransactions(
-    supabase.from("transactions").select("*").lt("date", `${year}-01-01`)
-  );
-
-  // 選択年より前のクレジット引き落とし合計
-  const { data: prevSettlements, error: prevSetError } = await supabase
-    .from("credit_settlements")
-    .select("*")
-    .lt("year", year);
+  const [prevRows, { data: prevSettlements, error: prevSetError }, rows, { data: settlementData, error: setError }] = await Promise.all([
+    fetchAllTransactions(supabase.from("transactions").select("type, amount, pay_method").lt("date", `${year}-01-01`)),
+    supabase.from("credit_settlements").select("amount").lt("year", year),
+    fetchAllTransactions(supabase.from("transactions").select("date, type, amount, pay_method")
+      .gte("date", `${year}-01-01`).lt("date", `${year + 1}-01-01`).order("date", { ascending: true })),
+    supabase.from("credit_settlements").select("month, amount, settlement_date").eq("year", year),
+  ]);
   if (prevSetError) throw new Error(prevSetError.message);
+  if (setError) throw new Error(setError.message);
 
   const prevSettlementTotal = ((prevSettlements ?? []) as CreditSettlement[]).reduce(
     (sum, s) => sum + s.amount, 0
@@ -136,23 +147,6 @@ export async function getDailyData(year: number): Promise<MonthDailyData[]> {
     if (t.pay_method === "Cash") return sum - t.amount;
     return sum;
   }, 0) - prevSettlementTotal;
-
-  // 選択年のすべての収支を日付順に取得（ページネーションで全件）
-  const rows = await fetchAllTransactions(
-    supabase
-      .from("transactions")
-      .select("*")
-      .gte("date", `${year}-01-01`)
-      .lt("date", `${year + 1}-01-01`)
-      .order("date", { ascending: true })
-  );
-
-  // 選択年のクレジット引き落とし取得
-  const { data: settlementData, error: setError } = await supabase
-    .from("credit_settlements")
-    .select("*")
-    .eq("year", year);
-  if (setError) throw new Error(setError.message);
 
   const settlementMap = new Map<number, { amount: number; day: number; date: string }>(
     ((settlementData ?? []) as CreditSettlement[]).map((s) => {
@@ -523,7 +517,7 @@ export async function getCreditSettlements(year: number): Promise<CreditSettleme
   return (data ?? []) as CreditSettlement[];
 }
 
-export async function getCategories(): Promise<Category[]> {
+export const getCategories = cache(async function getCategories(): Promise<Category[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("categories")
@@ -531,7 +525,7 @@ export async function getCategories(): Promise<Category[]> {
     .order("display_order", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as Category[];
-}
+});
 
 export async function getTransactions({
   month,
@@ -618,8 +612,8 @@ export async function getCurrentBalance(): Promise<number> {
   const todayStr = getJapanToday().date;
 
   const [allRows, { data: settlements, error: setError }] = await Promise.all([
-    fetchAllTransactions(supabase.from("transactions").select("*").lte("date", todayStr)),
-    supabase.from("credit_settlements").select("*").lte("settlement_date", todayStr),
+    fetchAllTransactions(supabase.from("transactions").select("type, amount, pay_method").lte("date", todayStr)),
+    supabase.from("credit_settlements").select("amount").lte("settlement_date", todayStr),
   ]);
   if (setError) throw new Error(setError.message);
 
@@ -773,25 +767,17 @@ export async function getYearlyTrend(year: number) {
     .map(([month, { income, expense, reimbursement }]) => ({ month, income, expense, reimbursement, effectiveExpense: expense - reimbursement }));
 }
 
+export function summarizeYearlyTrend(rows: { income: number; expense: number; reimbursement: number }[]) {
+  const totals = rows.reduce((sum, row) => ({
+    income: sum.income + row.income,
+    expense: sum.expense + row.expense,
+    reimbursement: sum.reimbursement + row.reimbursement,
+  }), { income: 0, expense: 0, reimbursement: 0 });
+  return { ...totals, effectiveExpense: totals.expense - totals.reimbursement, balance: totals.income - totals.expense };
+}
+
 export async function getYearlySummary(year: number) {
-  const supabase = await createClient();
-
-  const [rows, { data: reimData, error: reimError }] = await Promise.all([
-    fetchAllTransactions(
-      supabase.from("transactions").select("type, amount").gte("date", `${year}-01-01`).lt("date", `${year + 1}-01-01`)
-    ),
-    supabase.from("transactions").select("amount, categories(offset_category_id)").eq("type", "income").gte("date", `${year}-01-01`).lt("date", `${year + 1}-01-01`),
-  ]);
-  if (reimError) throw new Error(reimError.message);
-
-  const income = rows.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
-  const expense = rows.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
-
-  const reimbursement = ((reimData ?? []) as { amount: number; categories: { offset_category_id: number | null } | null }[])
-    .filter((t) => t.categories?.offset_category_id != null)
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  return { income, expense, reimbursement, effectiveExpense: expense - reimbursement, balance: income - expense };
+  return summarizeYearlyTrend(await getYearlyTrend(year));
 }
 
 export type YearlyBudgetData = {
@@ -849,26 +835,23 @@ export async function getFixedExpenseById(id: number): Promise<FixedExpense> {
   return data as FixedExpense;
 }
 
+const getMonthlyBudgetRecords = cache(async (year: number, month: number): Promise<Budget[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("budgets").select("*").eq("year", year).eq("month", month);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Budget[];
+});
+
 export async function getBudgetData(year: number, month: number): Promise<BudgetItem[]> {
   const supabase = await createClient();
   const { start, end } = getMonthRange(year, month);
 
-  const [
-    { data: categoryData, error: catError },
-    { data: budgetData, error: budgetError },
-    { data: txData, error: txError },
-  ] = await Promise.all([
-    supabase.from("categories").select("*").order("display_order", { ascending: true }),
-    supabase.from("budgets").select("*").eq("year", year).eq("month", month),
+  const [categories, budgets, { data: txData, error: txError }] = await Promise.all([
+    getCategories(),
+    getMonthlyBudgetRecords(year, month),
     supabase.from("transactions").select("type, amount, category_id, categories(offset_category_id)").gte("date", start).lt("date", end),
   ]);
-
-  if (catError) throw new Error(catError.message);
-  if (budgetError) throw new Error(budgetError.message);
   if (txError) throw new Error(txError.message);
-
-  const categories = (categoryData ?? []) as Category[];
-  const budgets = (budgetData ?? []) as Budget[];
 
   type TxRow = { type: string; amount: number; category_id: number | null; categories: { offset_category_id: number | null } | null };
   const transactions = (txData ?? []) as TxRow[];
@@ -923,38 +906,24 @@ export async function getWeeklyBudgetData(
   const supabase = await createClient();
   const periods = getWeekBudgetPeriods(weekStart, weekEnd);
 
-  const [
-    { data: categoryData, error: catError },
-    periodBudgetResult,
-    ...monthlyBudgetResults
-  ] = await Promise.all([
-    supabase.from("categories").select("*").order("display_order", { ascending: true }),
+  const [categories, periodBudgetResult, monthlyBudgetRecords, periodTransactionResults] = await Promise.all([
+    getCategories(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from("weekly_budget_periods") as any)
-      .select("period_start, period_end, category_id, amount")
-      .gte("period_start", weekStart)
-      .lte("period_end", weekEnd),
-    ...periods.map((period) =>
-      supabase.from("budgets").select("*").eq("year", period.year).eq("month", period.month)
-    ),
+      .select("period_start, period_end, category_id, amount").gte("period_start", weekStart).lte("period_end", weekEnd),
+    Promise.all(periods.map((period) => getMonthlyBudgetRecords(period.year, period.month))),
+    Promise.all(periods.map((period) => supabase.from("transactions").select("category_id, amount")
+      .eq("type", "expense").gte("date", period.start).lte("date", period.end))),
   ]);
-
-  if (catError) throw new Error(catError.message);
-  for (const result of monthlyBudgetResults) {
-    if (result.error) throw result.error;
-  }
   if (periodBudgetResult.error) throw periodBudgetResult.error;
 
-  const categories = (categoryData ?? []) as Category[];
   const periodBudgets = (periodBudgetResult.data ?? []) as {
     period_start: string;
     period_end: string;
     category_id: number;
     amount: number;
   }[];
-  const monthlyBudgetMaps = monthlyBudgetResults.map(
-    (result) => new Map(((result.data ?? []) as Budget[]).map((budget) => [budget.category_id, budget.amount]))
-  );
+  const monthlyBudgetMaps = monthlyBudgetRecords.map((records) => new Map(records.map((budget) => [budget.category_id, budget.amount])));
   const periodBudgetMap = new Map(
     periodBudgets.map((budget) => [
       `${budget.period_start}:${budget.period_end}:${budget.category_id}`,
@@ -963,16 +932,6 @@ export async function getWeeklyBudgetData(
   );
   const actualByPeriodAndCategory = new Map<string, number>();
 
-  const periodTransactionResults = await Promise.all(
-    periods.map((period) =>
-      supabase
-        .from("transactions")
-        .select("category_id, amount")
-        .eq("type", "expense")
-        .gte("date", period.start)
-        .lte("date", period.end)
-    )
-  );
   for (const [periodIndex, result] of periodTransactionResults.entries()) {
     if (result.error) throw result.error;
     for (const tx of (result.data ?? []) as { category_id: number | null; amount: number }[]) {
@@ -1038,7 +997,7 @@ export async function getWeeklyTotalBudget(weekStart: string): Promise<number> {
   return (data as { amount: number } | null)?.amount ?? 0;
 }
 
-export async function hasMonthlyBudget(year: number, month: number): Promise<boolean> {
+export const hasMonthlyBudget = cache(async function hasMonthlyBudget(year: number, month: number): Promise<boolean> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("budgets")
@@ -1048,9 +1007,9 @@ export async function hasMonthlyBudget(year: number, month: number): Promise<boo
     .limit(1);
   if (error) throw new Error(error.message);
   return ((data ?? []) as unknown[]).length > 0;
-}
+});
 
-export async function hasWeeklyBudget(weekStart: string): Promise<boolean> {
+export const hasWeeklyBudget = cache(async function hasWeeklyBudget(weekStart: string): Promise<boolean> {
   const supabase = await createClient();
   const weekStartDate = new Date(`${weekStart}T00:00:00`);
   weekStartDate.setDate(weekStartDate.getDate() + 6);
@@ -1063,7 +1022,7 @@ export async function hasWeeklyBudget(weekStart: string): Promise<boolean> {
     .limit(1);
   if (error) throw new Error(error.message);
   return ((data ?? []) as unknown[]).length > 0;
-}
+});
 
 export async function getFeatureRequests(): Promise<FeatureRequest[]> {
   const supabase = await createClient();

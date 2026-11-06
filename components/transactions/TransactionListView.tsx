@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Download, MoreHorizontal, Upload } from "lucide-react";
 import TransactionFilters from "./TransactionFilters";
@@ -73,17 +73,17 @@ export default function TransactionListView({ initialPage, categories, filters, 
     });
   }
 
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const { totalIncome, totalExpense, incomeCount, expenseCount, cashCount, creditCount, groupedTransactions } = useMemo(() => {
+    let totalIncome = 0, totalExpense = 0, incomeCount = 0, expenseCount = 0, cashCount = 0, creditCount = 0;
+    for (const transaction of transactions) {
+      if (transaction.type === "income") { totalIncome += transaction.amount; incomeCount++; }
+      if (transaction.type === "expense") { totalExpense += transaction.amount; expenseCount++; }
+      if (transaction.pay_method === "Cash") cashCount++;
+      if (transaction.pay_method === "Credit") creditCount++;
+    }
+    return { totalIncome, totalExpense, incomeCount, expenseCount, cashCount, creditCount, groupedTransactions: groupByDate(transactions) };
+  }, [transactions]);
   const balance = totalIncome - totalExpense;
-  const cashCount = transactions.filter((t) => t.pay_method === "Cash").length;
-  const creditCount = transactions.filter((t) => t.pay_method === "Credit").length;
-
-  const groupedTransactions = groupByDate(transactions);
   const monthLabel = filters.months.length ? `${filters.months.length}か月を選択` : "全期間";
   const selectedMonth = filters.months.length === 1 ? filters.months[0] : undefined;
 
@@ -151,7 +151,7 @@ export default function TransactionListView({ initialPage, categories, filters, 
             <div className="flex items-center justify-between gap-3 text-xs font-bold text-gray-500">
               <span>収入（表示中）</span>
               <span className="rounded-full bg-green-50 px-2 py-1 text-[11px] text-green-700">
-                {transactions.filter((t) => t.type === "income").length}件
+                {incomeCount}件
               </span>
             </div>
             <div className="mt-2 text-xl font-extrabold tabular-nums text-green-700">
@@ -164,7 +164,7 @@ export default function TransactionListView({ initialPage, categories, filters, 
             <div className="flex items-center justify-between gap-3 text-xs font-bold text-gray-500">
               <span>支出（表示中）</span>
               <span className="rounded-full bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
-                {transactions.filter((t) => t.type === "expense").length}件
+                {expenseCount}件
               </span>
             </div>
             <div className="mt-2 text-xl font-extrabold tabular-nums text-red-600">

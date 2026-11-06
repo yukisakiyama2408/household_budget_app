@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import type { Category } from "@/types/database";
 
 export type ParsedRow = {
@@ -30,12 +30,15 @@ export default function CsvRowCards({
   removeRow,
   getDuplicateLevel,
 }: Props) {
-  const [currentIdx, setCurrentIdx] = useState(0);
+  const [navigation, setNavigation] = useState({ rowCount: filteredIndexedRows.length, index: 0 });
+  if (navigation.rowCount !== filteredIndexedRows.length) {
+    setNavigation({ rowCount: filteredIndexedRows.length, index: 0 });
+  }
+  const currentIdx = navigation.index;
+  function setCurrentIdx(index: number) {
+    setNavigation({ rowCount: filteredIndexedRows.length, index });
+  }
   const touchStartX = useRef(0);
-
-  useEffect(() => {
-    setCurrentIdx(0);
-  }, [filteredIndexedRows.length]);
 
   const safeIdx = Math.min(currentIdx, filteredIndexedRows.length - 1);
   const current = filteredIndexedRows[safeIdx];

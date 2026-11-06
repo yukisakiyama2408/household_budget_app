@@ -17,7 +17,7 @@ import {
   getBudgetData,
   getWeeklyBudgetData,
   getTransactions,
-  getAnalysisResults,
+  getAnalysisResultForPeriod,
 } from "@/lib/data";
 import { getWeekBudgetPeriods, getWeeksOfMonth, getCurrentWeekStart } from "@/lib/dateUtils";
 
@@ -78,25 +78,16 @@ export default async function BudgetPage({ searchParams }: Props) {
 
   const selectedMonthLabel = `${year}年${month}月`;
 
-  const [allMonthlyItems, analysisResults] = await Promise.all([
+  const priorPeriod = getPriorAnalysisPeriod(view, year, month, weekStart);
+  const [allMonthlyItems, priorAnalysis, allWeeklyItems, periodTransactions] = await Promise.all([
     getBudgetData(year, month),
-    getAnalysisResults(),
-  ]);
-
-  const monthlyItems = (allMonthlyItems as Awaited<ReturnType<typeof getBudgetData>>).filter((i) =>
-    BUDGET_CATEGORIES.includes(i.category.name)
-  );
-
-  const allWeeklyItems =
-    view === "weekly"
-      ? await getWeeklyBudgetData(year, month, weekStart, weekEnd)
-      : [];
-
-  const periodTransactions = await getTransactions(
-    view === "weekly"
+    getAnalysisResultForPeriod(priorPeriod.view, priorPeriod.dateFrom, priorPeriod.dateTo),
+    view === "weekly" ? getWeeklyBudgetData(year, month, weekStart, weekEnd) : Promise.resolve([]),
+    getTransactions(view === "weekly"
       ? { dateFrom: weekStart, dateTo: weekEnd }
-      : { month: `${year}-${String(month).padStart(2, "0")}` }
-  );
+      : { month: `${year}-${String(month).padStart(2, "0")}` }),
+  ]);
+  const monthlyItems = allMonthlyItems.filter((item) => BUDGET_CATEGORIES.includes(item.category.name));
 
   const weeklyItems = (allWeeklyItems as Awaited<ReturnType<typeof getWeeklyBudgetData>>).filter(
     (i) => WEEKLY_BUDGET_CATEGORIES.includes(i.category.name)
@@ -107,12 +98,6 @@ export default async function BudgetPage({ searchParams }: Props) {
   const totalMonthlyBudget = monthlyItems.reduce((s: number, i: typeof monthlyItems[number]) => s + i.budgetAmount, 0);
   const totalMonthlyActual = monthlyItems.reduce((s: number, i: typeof monthlyItems[number]) => s + i.actualAmount, 0);
 
-  const priorPeriod = getPriorAnalysisPeriod(view, year, month, weekStart);
-  const priorAnalysis = (analysisResults as Awaited<ReturnType<typeof getAnalysisResults>>).find(
-    (result) => result.analysis_view === priorPeriod.view
-      && result.date_from === priorPeriod.dateFrom
-      && result.date_to === priorPeriod.dateTo
-  );
   const priorAnalysisContext = priorAnalysis ? {
     id: priorAnalysis.id,
     title: priorAnalysis.title,

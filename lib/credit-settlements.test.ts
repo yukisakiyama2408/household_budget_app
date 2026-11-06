@@ -90,6 +90,7 @@ test("saving and correcting an amount preserves balance accounting and never dup
   const paths: string[] = [];
   const server = { createClient: async () => client };
   const data = loadModule<Pick<typeof import("./data"), "getDailyData" | "getCurrentBalance">>("./data.ts", {
+    react: { cache: (fn: unknown) => fn },
     "@/utils/supabase/server": server,
     "@/lib/dateUtils": { getJapanToday: () => ({ date: "2026-11-06" }) },
   });

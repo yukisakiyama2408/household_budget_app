@@ -39,3 +39,9 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ## 画面構成の再編
 
 機能の所属、正式URL、旧URLの転送先、期間の引き継ぎ、実装順は [画面構成・URLの設計](docs/information-architecture.md) を参照してください。
+
+ステップ5まで実装済みです。次回は **6 → 7 → 8 → 9** の順で再開します。具体的なTo-doと未確認事項は、上記文書の「次回の再開メモ（2026年11月6日）」に記載しています。
+
+## パフォーマンス
+
+調査結果・改善内容・計測条件・未対応事項は [パフォーマンス調査記録](docs/performance/audit.md) を参照してください。

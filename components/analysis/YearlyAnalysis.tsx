@@ -1,13 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SummaryCards from "@/components/dashboard/SummaryCards";
 import MonthlyBarChart from "@/components/dashboard/MonthlyBarChart";
-import { getYearlyTrend, getYearlySummary } from "@/lib/data";
+import { getYearlyTrend, summarizeYearlyTrend } from "@/lib/data";
 
 export default async function YearlyAnalysis({ year: currentYear }: { year: number }) {
-  const [summary, trendData] = await Promise.all([
-    getYearlySummary(currentYear),
-    getYearlyTrend(currentYear),
-  ]);
+  const trendData = await getYearlyTrend(currentYear);
+  const summary = summarizeYearlyTrend(trendData);
   const activeMonths = trendData.filter((d) => d.income > 0 || d.expense > 0);
   const averageExpense =
     activeMonths.length > 0

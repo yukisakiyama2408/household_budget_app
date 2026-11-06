@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import Papa from "papaparse";
+import { buildDuplicateIndex, getDuplicateLevel as lookupDuplicateLevel } from "@/lib/import-duplicates";
 import { importTransactions, fetchTransactionsForDuplicateCheck, fetchRecentTransactions, fetchCategoryByStores, type RecentTransaction } from "@/lib/actions";
 import type { Category } from "@/types/database";
 import CsvRowCards, { type ParsedRow } from "./CsvRowCards";
@@ -30,36 +30,33 @@ export default function CreditCsvImportForm({ categories }: { categories: Catego
   const [recentTx, setRecentTx] = useState<RecentTransaction[]>([]);
 
   useEffect(() => {
-    fetchRecentTransactions(5, "Credit").then(setRecentTx).catch(() => {});
+    let active = true;
+    fetchRecentTransactions(5, "Credit").then((transactions) => { if (active) setRecentTx(transactions); }).catch(() => {});
+    return () => { active = false; };
   }, []);
 
-  function getDuplicateLevel(row: ParsedRow): "high" | "low" | null {
-    const matches = existingTx.filter(
-      (t) => t.date === row.date && t.amount === row.amount
-    );
-    if (matches.length === 0) return null;
-    const storeMatch = matches.some(
-      (t) => t.store && row.store && t.store === row.store
-    );
-    return storeMatch ? "high" : "low";
-  }
-
-  const indexedRows = rows.map((row, originalIndex) => ({ row, originalIndex }));
-  const filteredIndexedRows = indexedRows.filter(({ row }) => {
+  const duplicateIndex = useMemo(() => buildDuplicateIndex(existingTx), [existingTx]);
+  const getDuplicateLevel = useCallback((row: ParsedRow) => lookupDuplicateLevel(duplicateIndex, row), [duplicateIndex]);
+  const filteredIndexedRows = useMemo(() => rows.map((row, originalIndex) => ({ row, originalIndex })).filter(({ row }) => {
     if (filterStart && row.date < filterStart) return false;
     if (filterEnd && row.date > filterEnd) return false;
     return true;
-  });
-  const highDuplicateCount = filteredIndexedRows.filter(({ row }) => getDuplicateLevel(row) === "high").length;
+  }), [rows, filterStart, filterEnd]);
+  const highDuplicateCount = useMemo(() => filteredIndexedRows.filter(({ row }) => getDuplicateLevel(row) === "high").length, [filteredIndexedRows, getDuplicateLevel]);
 
   function handleFile(file: File) {
     setError(null);
     setResult(null);
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const text = e.target?.result as string;
-      Papa.parse<Record<string, string>>(text, {
+      const parser = await import("papaparse").catch(() => null);
+      if (!parser) {
+        setError("CSV解析処理を読み込めませんでした。もう一度お試しください。");
+        return;
+      }
+      parser.default.parse<Record<string, string>>(text, {
         header: true,
         skipEmptyLines: true,
         complete: async ({ data, meta }) => {
