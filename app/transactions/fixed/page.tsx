@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getFixedExpenses, getFixedExpenseLogs } from "@/lib/data";
 import TransactionSectionTabs from "@/components/transactions/TransactionSectionTabs";
-import FixedExpenseMonthSelector from "@/components/fixed/FixedExpenseMonthSelector";
+import TransactionMonthSelector from "@/components/transactions/TransactionMonthSelector";
 import { fixedExpensesHref, normalizeMonth } from "@/lib/fixed-expense-navigation";
 import { getJapanToday } from "@/lib/dateUtils";
 import ApplyFixedExpensesButton from "@/components/fixed/ApplyFixedExpensesButton";
@@ -46,7 +46,7 @@ export default async function FixedExpensesPage({ searchParams }: {
       </div>
 
       <TransactionSectionTabs active="fixed" month={month} />
-      <FixedExpenseMonthSelector month={month} />
+      <TransactionMonthSelector month={month} basePath="/transactions/fixed" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>

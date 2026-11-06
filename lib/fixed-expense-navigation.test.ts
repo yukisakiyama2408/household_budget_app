@@ -50,7 +50,7 @@ test("return URLs cannot send create, update or delete flows outside the fixed-e
 test("legacy list, create and edit routes redirect with their month and record preserved", async () => {
   const returnTo = "/transactions/fixed?month=2025-12";
   const query = `?returnTo=${encodeURIComponent(returnTo)}`;
-  const cases: [() => Promise<never>, string][] = [
+  const cases: [() => Promise<unknown>, string][] = [
     [() => LegacyFixedExpensesPage({ searchParams: Promise.resolve({ year: "2025", month: "12" }) }), returnTo],
     [() => LegacyNewFixedExpensePage({ searchParams: Promise.resolve({ month: "2025-12" }) }), `/transactions/fixed/new${query}`],
     [() => LegacyEditFixedExpensePage({ params: Promise.resolve({ id: "42" }), searchParams: Promise.resolve({ returnTo }) }), `/transactions/fixed/42/edit${query}`],

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 import type { MonthDailyData } from "@/lib/data";
 import MonthSelector from "@/components/dashboard/MonthSelector";
-import CreditSettlementForm from "./CreditSettlementForm";
+import { creditSettlementsHref } from "@/lib/credit-settlements";
 
 type Props = {
   data: MonthDailyData;
@@ -17,7 +18,7 @@ const yen = (amount: number) => `¥${amount.toLocaleString("ja-JP")}`;
 export default function DailyTable({ data, showMonthSelector = true }: Props) {
   const {
     year, month, daysInMonth, totalIncome, totalCashExpense,
-    days, startBalance, creditSettlement, settlementDay, settlementDate,
+    days, startBalance, creditSettlement, settlementDay,
   } = data;
   const [today, setToday] = useState<Date | null>(null);
 
@@ -65,12 +66,12 @@ export default function DailyTable({ data, showMonthSelector = true }: Props) {
         </div>
       </header>
 
-      <CreditSettlementForm
-        year={year}
-        month={month}
-        currentAmount={creditSettlement}
-        settlementDate={settlementDate}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-slate-50 px-4 py-3 text-sm sm:px-5">
+        <span className="text-gray-600">カード引落額の確認・登録は収支で行えます。</span>
+        <Link href={creditSettlementsHref(`${year}-${String(month).padStart(2, "0")}`)} className="inline-flex min-h-11 items-center font-medium text-indigo-600 hover:underline">
+          {month}月のカード引落を管理 →
+        </Link>
+      </div>
 
       <div className="hidden md:block">
         <div className="grid grid-cols-7 border-b bg-slate-50">

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { fixedExpensesHref } from "@/lib/fixed-expense-navigation";
+import { creditSettlementsHref } from "@/lib/credit-settlements";
 
 type Props = {
-  active: "transactions" | "fixed";
+  active: "transactions" | "fixed" | "settlements";
   month?: string;
   transactionParams?: Record<string, string | undefined>;
 };
@@ -16,6 +17,7 @@ export default function TransactionSectionTabs({ active, month, transactionParam
   const links = [
     { key: "transactions", label: "取引明細", href: params.size ? `/transactions?${params}` : "/transactions" },
     { key: "fixed", label: "固定費", href: fixedExpensesHref(month) },
+    { key: "settlements", label: "カード引落", href: creditSettlementsHref(month) },
   ];
 
   return (

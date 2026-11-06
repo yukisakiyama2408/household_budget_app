@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { applyFixedExpenses } from "@/lib/fixed-expenses";
 import { fixedExpensesReturnTo } from "@/lib/fixed-expense-navigation";
+import { validateCreditSettlement } from "@/lib/credit-settlements";
 
 export async function createTransaction(formData: FormData) {
   const supabase = await createClient();
@@ -159,6 +160,7 @@ export async function upsertWeeklyTotalBudget(weekStart: string, amount: number)
 }
 
 export async function upsertCreditSettlement(year: number, month: number, amount: number, settlementDate: string) {
+  validateCreditSettlement(year, month, amount, settlementDate);
   const supabase = await createClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,6 +169,8 @@ export async function upsertCreditSettlement(year: number, month: number, amount
 
   if (error) throw new Error(error.message);
 
+  revalidatePath("/transactions/settlements");
+  revalidatePath("/");
   revalidatePath("/daily");
   revalidatePath("/monthly");
 }
