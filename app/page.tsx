@@ -113,7 +113,7 @@ export default async function HomePage() {
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
+    <div className="w-full max-w-6xl mx-auto px-4 py-6 space-y-4 sm:px-6 sm:py-8 lg:space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {year}年{month}月
@@ -126,16 +126,12 @@ export default async function HomePage() {
         weeklyMissing={!weeklyRegistered}
       />
 
-      {/* Bento hero grid */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <BalanceHeroCard
-          balance={balance}
-          year={year}
-          month={month}
-          dateLabel={dateLabel}
-        />
-        <GoalHeroCard goals={goals} />
-      </div>
+      <BalanceHeroCard
+        balance={balance}
+        year={year}
+        month={month}
+        dateLabel={dateLabel}
+      />
 
       {/* Budget tabs + transactions (shared category filter state) */}
       <BudgetTransactionsSection
@@ -154,6 +150,7 @@ export default async function HomePage() {
           categories: monthlyCategories,
         }}
         transactions={recentTx}
+        goalCard={<GoalHeroCard goals={goals} />}
       />
     </div>
   );

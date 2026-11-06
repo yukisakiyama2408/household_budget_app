@@ -14,7 +14,7 @@ export default function BalanceHeroCard({ balance, year, month, dateLabel }: Pro
 
   return (
     <div
-      className="rounded-2xl p-6 text-white relative overflow-hidden flex flex-col h-full"
+      className="rounded-2xl p-6 text-white relative overflow-hidden flex flex-col lg:flex-row lg:items-end lg:justify-between lg:gap-x-8 lg:flex-wrap"
       style={{
         background: isNegative
           ? "linear-gradient(135deg, #dc2626, #ef4444)"
@@ -22,10 +22,9 @@ export default function BalanceHeroCard({ balance, year, month, dateLabel }: Pro
         boxShadow: isNegative
           ? "0 8px 30px rgba(220,38,38,0.3)"
           : "0 8px 30px rgba(44,91,229,0.3)",
-        minHeight: "260px",
       }}
     >
-      <div className="flex justify-between items-center mb-1.5">
+      <div className="flex w-full justify-between items-center mb-1.5">
         <div className="text-[11px] opacity-85" style={{ letterSpacing: "1.5px" }}>
           BALANCE · {year}年{month}月
         </div>
@@ -37,41 +36,14 @@ export default function BalanceHeroCard({ balance, year, month, dateLabel }: Pro
         </div>
       </div>
 
-      <div className="mb-1.5 whitespace-nowrap text-[13px] opacity-90">現在の残高</div>
+      <div className="mb-1.5 whitespace-nowrap text-[13px] opacity-90 lg:mb-0 lg:py-2 lg:text-base">現在の残高</div>
 
       <div
-        className="mb-4 whitespace-nowrap tabular-nums leading-none"
+        className="whitespace-nowrap tabular-nums leading-none"
         style={{ fontSize: "clamp(38px,5vw,64px)", fontWeight: 700, letterSpacing: "-2.4px" }}
       >
         {isNegative ? "-" : ""}
         {fmt(balance)}
-      </div>
-
-      <div className="flex-1 relative mt-auto" style={{ minHeight: "70px" }}>
-        <svg
-          viewBox="0 0 300 80"
-          preserveAspectRatio="none"
-          className="w-full h-full block absolute inset-0"
-        >
-          <defs>
-            <linearGradient id="balHeroGrad" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0" stopColor="#fff" stopOpacity="0.35" />
-              <stop offset="1" stopColor="#fff" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M0,60 C30,55 50,48 75,42 C100,36 125,30 150,38 C175,46 200,28 225,22 C250,16 275,18 300,12 L300,80 L0,80 Z"
-            fill="url(#balHeroGrad)"
-          />
-          <path
-            d="M0,60 C30,55 50,48 75,42 C100,36 125,30 150,38 C175,46 200,28 225,22 C250,16 275,18 300,12"
-            fill="none"
-            stroke="#fff"
-            strokeWidth="2"
-            strokeOpacity="0.9"
-          />
-          <circle cx="300" cy="12" r="4" fill="#fff" />
-        </svg>
       </div>
 
       {/* Decorative rings */}
