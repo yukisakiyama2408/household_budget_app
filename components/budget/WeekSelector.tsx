@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getCurrentWeekStart, getWeeksOfMonth } from "@/lib/dateUtils";
+import { getWeeksOfMonth } from "@/lib/dateUtils";
 
 type Props = {
   year: number;
@@ -13,8 +13,7 @@ type Props = {
 
 export default function WeekSelector({ year, month, weekStart }: Props) {
   const router = useRouter();
-  const currentWeekStart = getCurrentWeekStart();
-  const weeks = getWeeksOfMonth(year, month).filter((week) => week.start >= currentWeekStart);
+  const weeks = getWeeksOfMonth(year, month);
   const currentIndex = weeks.findIndex((w) => w.start === weekStart);
   const current = weeks[currentIndex] ?? weeks[0];
 

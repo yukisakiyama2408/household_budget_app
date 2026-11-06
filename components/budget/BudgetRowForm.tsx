@@ -37,7 +37,7 @@ export default function BudgetRowForm({ year, month, categoryId, currentAmount }
         <span className="tabular-nums text-xs sm:text-sm">{fmt(currentAmount)}</span>
         <button
           onClick={() => setEditing(true)}
-          className="px-1.5 sm:px-2 py-0.5 text-xs text-gray-500 border rounded hover:bg-gray-50 transition-colors"
+          className="min-h-11 px-3 md:min-h-0 md:px-2 md:py-1 text-sm md:text-xs text-gray-500 border rounded hover:bg-gray-50 transition-colors"
         >
           編集
         </button>
@@ -46,29 +46,33 @@ export default function BudgetRowForm({ year, month, categoryId, currentAmount }
   }
 
   return (
-    <div className="flex items-center justify-end gap-0.5 sm:gap-1">
+    <div className="flex flex-wrap items-center justify-end gap-2 md:gap-1">
       <input
+        aria-label="予算額（円）"
         type="number"
+        inputMode="numeric"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel(); }}
-        className="w-16 sm:w-28 border rounded px-1 sm:px-2 py-1 text-right text-xs sm:text-sm tabular-nums"
+        className="h-11 w-28 min-w-0 border rounded px-2 text-right text-base md:h-8 md:text-sm tabular-nums"
         min={0}
         placeholder="0"
         autoFocus
       />
       <button
         type="button"
+        aria-label="予算を保存"
         onClick={handleSave}
         disabled={isPending}
-        className="px-1.5 sm:px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+        className="min-h-11 min-w-11 px-2 md:min-h-8 md:min-w-8 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
       >
         {isPending ? "…" : "✓"}
       </button>
       <button
         type="button"
+        aria-label="編集をキャンセル"
         onClick={handleCancel}
-        className="px-1.5 sm:px-2 py-1 text-xs text-gray-500 border rounded hover:bg-gray-50"
+        className="min-h-11 min-w-11 px-2 md:min-h-8 md:min-w-8 text-xs text-gray-500 border rounded hover:bg-gray-50"
       >
         ✕
       </button>

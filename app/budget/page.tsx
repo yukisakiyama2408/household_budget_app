@@ -12,6 +12,7 @@ import PageTabs from "@/components/PageTabs";
 import ApplyFixedExpensesButton from "@/components/fixed/ApplyFixedExpensesButton";
 import CategoryManager from "@/components/categories/CategoryManager";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import {
   getBudgetData,
   getWeeklyBudgetData,
@@ -154,7 +155,7 @@ export default async function BudgetPage({ searchParams }: Props) {
   const analysisHref = `/monthly?tab=insights&view=${priorPeriod.view}&period=${priorPeriod.period}`;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div className="w-full max-w-6xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">予算管理</h1>
         {isFixedTab && (
@@ -170,14 +171,14 @@ export default async function BudgetPage({ searchParams }: Props) {
       {isBudgetTab && (
         <div className="space-y-6">
           <section className="space-y-4">
-            <div className="flex flex-col gap-3 rounded-lg border bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 rounded-lg border bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h2 className="text-base font-semibold text-gray-900">予算を調整</h2>
                 <p className="mt-1 text-xs text-gray-500">
                   期間を選び、予算と実績の差分を確認してから予算を更新します。
                 </p>
               </div>
-              <div className="flex flex-col gap-2 sm:items-end">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <ViewToggle view={view} year={year} month={month} weekStart={weekStart} />
                 <MonthSelector year={year} month={month} extraParams={view === "weekly" ? `view=weekly` : undefined} />
               </div>
@@ -195,71 +196,6 @@ export default async function BudgetPage({ searchParams }: Props) {
             ) : (
               <TotalBudgetCard type="weekly" weekStart={weekStart} weekLabel={weekRange?.label ?? ""} budgetAmount={totalWeeklyBudget} actualAmount={weeklyActualTotal} />
             )}
-          </section>
-
-          <section className="rounded-lg border bg-white p-4">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-gray-900">AIで予算を見直す</h2>
-                <p className="mt-1 text-xs text-gray-500">
-                  CSVを渡して予算案を作り、出力を貼り付けて予算表へ反映します。
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className={`rounded-md border p-3 ${priorAnalysis ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className={`text-xs font-bold ${priorAnalysis ? "text-green-800" : "text-amber-800"}`}>
-                      1. {priorPeriod.label}を分析する
-                    </p>
-                    <p className={`mt-1 text-xs ${priorAnalysis ? "text-green-700" : "text-amber-700"}`}>
-                      {priorAnalysis
-                        ? `「${priorAnalysis.title}」を予算案のプロンプトへ反映します。`
-                        : "直前期間の分析を登録すると、その内容を予算案へ引き継げます。"}
-                    </p>
-                  </div>
-                  <Link
-                    href={analysisHref}
-                    className={`shrink-0 rounded-md px-3 py-2 text-xs font-bold text-white ${priorAnalysis ? "bg-green-600 hover:bg-green-700" : "bg-amber-600 hover:bg-amber-700"}`}
-                  >
-                    {priorAnalysis ? "分析結果を確認" : "分析して登録"}
-                  </Link>
-                </div>
-              </div>
-              {view === "weekly" ? (
-                <WeeklyBudgetReviewFlow
-                  periods={selectedWeekPeriods}
-                  categories={weeklyItems.map((item) => ({ id: item.category.id, name: item.category.name }))}
-                  priorAnalysis={priorAnalysisContext}
-                />
-              ) : (
-                <BudgetReviewTools view={view} targetLabel={selectedMonthLabel} priorAnalysis={priorAnalysisContext} />
-              )}
-
-              {view === "monthly" && <div className="border-t pt-4">
-                <div className="mb-3 grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
-                  <div className="rounded-md bg-gray-50 px-3 py-2">
-                    <span className="font-bold text-gray-700">4. AI出力</span>
-                    <span className="ml-1">回答を下の入力欄へ貼り付けます。</span>
-                  </div>
-                  <div className="rounded-md bg-gray-50 px-3 py-2">
-                    <span className="font-bold text-gray-700">5. 反映</span>
-                    <span className="ml-1">認識結果を確認して一括登録します。</span>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">AI出力を反映</h3>
-                  <p className="mt-1 text-xs text-gray-500">
-                    コピーしたプロンプトの回答を貼り付けて、予算表へ一括登録します。
-                  </p>
-                </div>
-                <div className="mt-3">
-                  <CombinedBudgetImport year={year} month={month} monthLabel={selectedMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
-                </div>
-              </div>}
-            </div>
           </section>
 
           <section className="space-y-3">
@@ -284,6 +220,73 @@ export default async function BudgetPage({ searchParams }: Props) {
             title={view === "weekly" ? `取引明細（${weekRange?.label ?? ""}）` : `取引明細（${year}年${month}月）`}
           />
 
+          <details
+            key={`${view}-${year}-${month}-${weekStart}`}
+            className="group rounded-lg border bg-white"
+          >
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-lg p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
+              <span className="text-sm font-semibold text-indigo-700">AIで予算を見直す</span>
+              <ChevronDown aria-hidden="true" className="h-5 w-5 shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="border-t p-4 sm:p-6">
+              <p className="mb-4 text-sm text-gray-500">
+                CSVを渡して予算案を作り、出力を貼り付けて予算表へ反映します。
+              </p>
+              <div className="space-y-4">
+                <div className={`rounded-md border p-3 ${priorAnalysis ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className={`text-xs font-bold ${priorAnalysis ? "text-green-800" : "text-amber-800"}`}>
+                        1. {priorPeriod.label}を分析する
+                      </p>
+                      <p className={`mt-1 text-xs ${priorAnalysis ? "text-green-700" : "text-amber-700"}`}>
+                        {priorAnalysis
+                          ? `「${priorAnalysis.title}」を予算案のプロンプトへ反映します。`
+                          : "直前期間の分析を登録すると、その内容を予算案へ引き継げます。"}
+                      </p>
+                    </div>
+                    <Link
+                      href={analysisHref}
+                      className={`shrink-0 rounded-md px-3 py-2 text-xs font-bold text-white ${priorAnalysis ? "bg-green-600 hover:bg-green-700" : "bg-amber-600 hover:bg-amber-700"}`}
+                    >
+                      {priorAnalysis ? "分析結果を確認" : "分析して登録"}
+                    </Link>
+                  </div>
+                </div>
+                {view === "weekly" ? (
+                  <WeeklyBudgetReviewFlow
+                    periods={selectedWeekPeriods}
+                    categories={weeklyItems.map((item) => ({ id: item.category.id, name: item.category.name }))}
+                    priorAnalysis={priorAnalysisContext}
+                  />
+                ) : (
+                  <BudgetReviewTools view={view} targetLabel={selectedMonthLabel} priorAnalysis={priorAnalysisContext} />
+                )}
+
+                {view === "monthly" && <div className="border-t pt-4">
+                  <div className="mb-3 grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
+                    <div className="rounded-md bg-gray-50 px-3 py-2">
+                      <span className="font-bold text-gray-700">4. AI出力</span>
+                      <span className="ml-1">回答を下の入力欄へ貼り付けます。</span>
+                    </div>
+                    <div className="rounded-md bg-gray-50 px-3 py-2">
+                      <span className="font-bold text-gray-700">5. 反映</span>
+                      <span className="ml-1">認識結果を確認して一括登録します。</span>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">AI出力を反映</h3>
+                    <p className="mt-1 text-xs text-gray-500">
+                      コピーしたプロンプトの回答を貼り付けて、予算表へ一括登録します。
+                    </p>
+                  </div>
+                  <div className="mt-3">
+                    <CombinedBudgetImport year={year} month={month} monthLabel={selectedMonthLabel} categories={monthlyItems.map((i) => ({ id: i.category.id, name: i.category.name }))} />
+                  </div>
+                </div>}
+              </div>
+            </div>
+          </details>
         </div>
       )}
 
