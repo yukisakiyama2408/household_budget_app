@@ -1,4 +1,5 @@
 import MonthSelector from "@/components/budget/MonthSelector";
+import BudgetSectionTabs from "@/components/budget/BudgetSectionTabs";
 import BudgetTable from "@/components/budget/BudgetTable";
 import WeeklyBudgetTable from "@/components/budget/WeeklyBudgetTable";
 import ViewToggle from "@/components/budget/ViewToggle";
@@ -129,6 +130,8 @@ export default async function BudgetPage({ searchParams }: Props) {
           カテゴリ管理
         </Link>
       </div>
+
+      <BudgetSectionTabs active="budget" context={{ year: String(year), month: String(month), view, weekStart }} />
 
       <div className="space-y-6">
         <section className="space-y-4">

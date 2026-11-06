@@ -40,8 +40,7 @@ export async function createGoal(formData: FormData) {
     is_active: true,
   });
   if (error) throw new Error(error.message);
-  revalidatePath("/goals");
-  revalidatePath("/goals/manage");
+  revalidatePath("/budget/goals");
   revalidatePath("/");
 }
 
@@ -62,8 +61,7 @@ export async function updateGoal(id: number, formData: FormData) {
     .update({ title, target_amount: targetAmount, ...(savedAmount !== undefined ? { saved_amount: savedAmount } : {}), deadline, category_id: categoryId, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath("/goals");
-  revalidatePath("/goals/manage");
+  revalidatePath("/budget/goals");
   revalidatePath("/");
 }
 
@@ -72,7 +70,6 @@ export async function deleteGoal(id: number) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from("goals") as any).delete().eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath("/goals");
-  revalidatePath("/goals/manage");
+  revalidatePath("/budget/goals");
   revalidatePath("/");
 }

@@ -29,7 +29,7 @@ export default function GoalHeroCard({ goals }: Props) {
       <div className="rounded-2xl p-5 border bg-card flex flex-col h-full" style={{ minHeight: "260px" }}>
         <div className="flex justify-between items-center mb-4">
           <div className="text-[13px] font-semibold">目標の進捗</div>
-          <Link href="/goals/manage" className="text-[11px] text-muted-foreground hover:underline">
+          <Link href="/budget/goals" className="text-[11px] text-muted-foreground hover:underline">
             管理 →
           </Link>
         </div>
@@ -57,7 +57,7 @@ export default function GoalHeroCard({ goals }: Props) {
     <div className="rounded-2xl p-5 border bg-card flex flex-col h-full" style={{ minHeight: "260px" }}>
       <div className="flex justify-between items-center mb-4">
         <div className="text-[13px] font-semibold">目標の進捗</div>
-        <Link href="/goals/manage" className="text-[11px] text-muted-foreground hover:underline">
+        <Link href="/budget/goals" className="text-[11px] text-muted-foreground hover:underline">
           管理 →
         </Link>
       </div>

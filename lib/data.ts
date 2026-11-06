@@ -445,7 +445,7 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
     .eq("is_active", true)
     .order("created_at", { ascending: false });
   if (error) {
-    // Keep /goals reachable while a new or older environment is waiting for
+    // Keep /budget/goals reachable while a new or older environment is waiting for
     // the goals migrations (missing table/columns or relationship cache).
     if (["42P01", "42703", "PGRST200", "PGRST204"].includes(error.code)) return [];
     throw new Error(error.message);
