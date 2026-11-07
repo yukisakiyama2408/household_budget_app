@@ -105,3 +105,49 @@ node scripts/benchmark-performance.mjs . docs/performance/benchmark-after.json
 ベンチマークの第1引数には別のソースディレクトリを指定できる。修正前の実装は調査開始時に `/tmp/household-budget-performance-baseline` へ保存し、同じ測定プログラムで比較した。永続的な基準としては上記commitの `lib/data.ts`・`components/analysis/YearlyAnalysis.tsx`・`components/import/CsvImportForm.tsx` から再構成できる。
 
 次は実ブラウザのNetwork・Performance・Memoryで代表画面を計測し、実DBのクエリ時間を確認する。その結果を踏まえて、DB集計・固定費RPC・グラフ分割・一覧仮想化の順序と影響を提案する。これらの大きな変更は今回の実装には含めない。
+
+
+## 2026年11月7日：画面構成の更新後の追加改善
+
+ステップ6〜8の実装とステップ9の自動検証後に実施。実ブラウザの確認は環境の操作許可が得られず未実施。最新の制限は `docs/verification/2026-11-07.md` を参照。
+
+### 追加した改善
+
+- 画面構成の整理で改善要望を設定配下に移したため、全画面共通ナビから改善要望候補の取得とモーダルを除いた。ナビの予算登録確認は維持する。コード上、認証後の独立したデータ取得は3件から2件へ減る（認証処理を除く）。実DBでの通信量・時間は未計測。
+- 分析の月次・週次・日別表示で、期間選択肢用の日付範囲を取得してから本体取得を開始する逐次待ちを解消。依存しない取得を `Promise.all` で同時開始する。全件数や返す表示用データは変えない。年次表示は今回の並列化対象外。
+- ルート移動に合わせ、バンドル計測スクリプトの対象を `/transactions/import` と `/settings/feedback` に更新。以前の `/import` の値とは同一ルートとして直接比較しない。
+
+### 模擬クエリでの比較
+
+実際の分析ページをトランスパイルして実行し、データ取得関数をそれぞれ8ms待機するfixtureで置き換えた。各7回の中央値。画面コンポーネント自体やDB内部の複数SQLは実行していない。表の「同時取得」はページが呼ぶデータ関数単位。
+
+| 表示 | 関数呼び出し数（前後同じ） | 最大同時取得 前→後 | 模擬時間 前→後 |
+| --- | ---: | ---: | ---: |
+| 月次 | 4 | 3 → 4 | 18.606ms → 9.518ms |
+| 週次 | 2 | 1 → 2 | 18.835ms → 9.578ms |
+| 日別 | 2 | 1 → 2 | 18.516ms → 9.357ms |
+
+年次のページ側では日付範囲1件のみをfixtureに置き換えており、年次コンポーネントの内部取得はこの測定に含めない。年次の速度改善は主張しない。4表示のページ要素ツリーとpropsのSHA-256は変更前後で一致した。これはスクリーンショット比較や本番の体感速度ではない。
+
+結果：`analysis-page-before.json`・`analysis-page-after.json`。再現スクリプトは `scripts/benchmark-analysis-page.mjs`。変更前ソースは `/tmp/household-budget-analysis-before.tsx` に保存した一時ファイル（永続保存ではない）。変更前の分析ページは今回の作業開始時のGit HEADと同じ実装。
+
+```sh
+node --import tsx scripts/benchmark-analysis-page.mjs /tmp/household-budget-analysis-before.tsx docs/performance/analysis-page-before.json
+node --import tsx scripts/benchmark-analysis-page.mjs app/analysis/page.tsx docs/performance/analysis-page-after.json
+```
+
+DB集計・インデックス・固定費のバッチ化・グラフ分割・大量明細の仮想化・CSV Workerは引き続き提案段階。実環境の計測と、必要に応じた設計確認を経て実施する。
+
+
+### 共通リンク生成のクライアントJavaScript削減
+
+登録リンクを作るためだけに、予算・分析の期間正規化処理まで共通ナビへ取り込んでいた。URLの組み立てを依存のない `lib/transactions/entry-links.ts` へ分離し、受信側のServer ComponentとServer Actionでは従来どおり戻り先を検証する。認証・許可先の制限は変更しない。
+
+画面構成を更新した後の同じホーム・収支画面について、本番ビルドの入口JSを比較した。前回と同じくmanifestの `entryJSFiles` をルートごとに重複排除し、各JSを個別gzipした合計。ネットワークや実描画時間の測定ではない。
+
+| ルート | 分離前 | 分離後 |
+| --- | ---: | ---: |
+| ホーム | 29,153B | 26,702B |
+| 収支一覧 | 32,635B | 30,711B |
+
+結果は `bundles-2026-11-07.json` と `bundles-2026-11-07-after-link-split.json` に保存。画面構成を変更する前の11月6日の測定とは機能・ルートが異なるため、今回の差分としてはこの2画面の分離前後だけを扱う。

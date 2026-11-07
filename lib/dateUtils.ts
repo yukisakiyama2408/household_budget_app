@@ -102,13 +102,11 @@ export function getWeekBudgetPeriods(weekStart: string, weekEnd: string): Budget
   return periods;
 }
 
-export function getCurrentWeekStart(): string {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diff);
-  return fmtDate(monday);
+export function getCurrentWeekStart(now = new Date()): string {
+  const today = getJapanToday(now);
+  const monday = new Date(`${today.date}T00:00:00Z`);
+  monday.setUTCDate(monday.getUTCDate() - ((today.dayOfWeek + 6) % 7));
+  return monday.toISOString().slice(0, 10);
 }
 
 export function getNextWeekStart(): string {

@@ -1,3 +1,5 @@
+import { budgetSectionHref, resolveBudgetSelection } from "@/lib/budget-navigation";
+import { analysisHref, resolveAnalysisSelection } from "@/lib/analysis-navigation";
 import MonthSelector from "@/components/budget/MonthSelector";
 import BudgetSectionTabs from "@/components/budget/BudgetSectionTabs";
 import BudgetTable from "@/components/budget/BudgetTable";
@@ -19,12 +21,12 @@ import {
   getTransactions,
   getAnalysisResultForPeriod,
 } from "@/lib/data";
-import { getWeekBudgetPeriods, getWeeksOfMonth, getCurrentWeekStart } from "@/lib/dateUtils";
+import { getWeekBudgetPeriods, getWeeksOfMonth, getJapanToday } from "@/lib/dateUtils";
 
 const BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品", "その他"];
 const WEEKLY_BUDGET_CATEGORIES = ["食費", "外食費", "接待交際費", "娯楽費", "スマホ代", "生活品"];
 type Props = {
-  searchParams: Promise<{ year?: string; month?: string; view?: string; weekStart?: string; tab?: string }>;
+  searchParams: Promise<{ year?: string; month?: string; view?: string; weekStart?: string; period?: string; tab?: string }>;
 };
 
 const pad = (value: number) => String(value).padStart(2, "0");
@@ -62,17 +64,13 @@ export default async function BudgetPage({ searchParams }: Props) {
     redirect(fixedExpensesHref(legacyFixedExpenseMonth(params.year, params.month)));
   }
   if (params.tab === "categories") redirect("/settings/categories");
-  const now = new Date();
-  const year = params.year ? parseInt(params.year) : now.getFullYear();
-  const month = params.month ? parseInt(params.month) : now.getMonth() + 1;
-  const view = params.view === "weekly" ? "weekly" : "monthly";
-
+  const selection = resolveBudgetSelection(params);
+  const { year, month, view, weekStart } = selection;
   const weeks = getWeeksOfMonth(year, month);
-  const currentWeekStart = getCurrentWeekStart();
-  const defaultWeekStart = weeks.find((w) => w.start === currentWeekStart)?.start ?? weeks[0]?.start ?? currentWeekStart;
-  const weekStart = params.weekStart ?? defaultWeekStart;
-  const weekRange = weeks.find((w) => w.start === weekStart) ?? weeks[0];
-  const weekEnd = weekRange?.end ?? weekStart;
+  const weekRange = weeks.find((w) => w.start === weekStart);
+  const weekEnd = view === "weekly" ? selection.dateTo : weekRange?.end ?? weekStart;
+  const context = { view, period: selection.period, month: selection.displayMonth };
+  const current = resolveBudgetSelection({ view }, getJapanToday().date);
 
   const selectedWeekPeriods = getWeekBudgetPeriods(weekStart, weekEnd);
 
@@ -105,7 +103,7 @@ export default async function BudgetPage({ searchParams }: Props) {
     periodLabel: priorAnalysis.period_label,
     advices: priorAnalysis.analysis_advices.map((advice) => advice.content),
   } : undefined;
-  const analysisHref = `/analysis/reviews?view=${priorPeriod.view}&period=${priorPeriod.period}`;
+  const priorAnalysisHref = `/analysis/reviews?view=${priorPeriod.view}&period=${priorPeriod.period}`;
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8">
@@ -116,7 +114,7 @@ export default async function BudgetPage({ searchParams }: Props) {
         </Link>
       </div>
 
-      <BudgetSectionTabs active="budget" context={{ year: String(year), month: String(month), view, weekStart }} />
+      <BudgetSectionTabs active="budget" context={context} />
 
       <div className="space-y-6">
         <section className="space-y-4">
@@ -129,7 +127,7 @@ export default async function BudgetPage({ searchParams }: Props) {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <ViewToggle view={view} year={year} month={month} weekStart={weekStart} />
-              <MonthSelector year={year} month={month} extraParams={view === "weekly" ? `view=weekly` : undefined} />
+              <MonthSelector year={year} month={month} extraParams={view === "weekly" ? "view=weekly" : undefined} />
             </div>
           </div>
           {view === "weekly" && (
@@ -163,6 +161,11 @@ export default async function BudgetPage({ searchParams }: Props) {
           )}
         </section>
 
+        <div className="flex flex-wrap gap-4 text-sm text-indigo-600">
+          <Link href={budgetSectionHref("budget", { view, period: current.period, month: current.displayMonth })} className="inline-flex min-h-11 items-center hover:underline">{view === "weekly" ? "今週に戻る" : "今月に戻る"}</Link>
+          <Link href={analysisHref("stats", resolveAnalysisSelection({ view, period: selection.period }))} className="inline-flex min-h-11 items-center hover:underline">この期間の分析 →</Link>
+          <Link href={`/transactions?${new URLSearchParams({ dateFrom: selection.dateFrom, dateTo: selection.dateTo })}`} className="inline-flex min-h-11 items-center hover:underline">この期間の取引明細 →</Link>
+        </div>
         {/* 取引明細 */}
         <BudgetTransactionList
           transactions={periodTransactions}
@@ -195,7 +198,7 @@ export default async function BudgetPage({ searchParams }: Props) {
                     </p>
                   </div>
                   <Link
-                    href={analysisHref}
+                    href={priorAnalysisHref}
                     className={`shrink-0 rounded-md px-3 py-2 text-xs font-bold text-white ${priorAnalysis ? "bg-green-600 hover:bg-green-700" : "bg-amber-600 hover:bg-amber-700"}`}
                   >
                     {priorAnalysis ? "分析結果を確認" : "分析して登録"}

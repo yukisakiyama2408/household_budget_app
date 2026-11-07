@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { applyFixedExpenses } from "@/lib/fixed-expenses";
 import { fixedExpensesReturnTo } from "@/lib/fixed-expense-navigation";
+import { transactionReturnTo } from "@/lib/transactions/navigation";
 import { validateCreditSettlement } from "@/lib/credit-settlements";
 
 export async function createTransaction(formData: FormData) {
@@ -33,9 +34,11 @@ export async function createTransaction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/budget");
+  revalidatePath("/budget/goals");
   revalidatePath("/analysis");
   revalidatePath("/analysis/reviews/checkin");
-  redirect("/transactions");
+  redirect(transactionReturnTo(formData.get("returnTo")));
 }
 
 export async function updateTransaction(id: number, formData: FormData) {
@@ -66,12 +69,14 @@ export async function updateTransaction(id: number, formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/budget");
+  revalidatePath("/budget/goals");
   revalidatePath("/analysis");
   revalidatePath("/analysis/reviews/checkin");
-  redirect("/transactions");
+  redirect(transactionReturnTo(formData.get("returnTo")));
 }
 
-export async function deleteTransaction(id: number) {
+export async function deleteTransaction(id: number, returnTo?: string) {
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -83,9 +88,11 @@ export async function deleteTransaction(id: number) {
 
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/budget");
+  revalidatePath("/budget/goals");
   revalidatePath("/analysis");
   revalidatePath("/analysis/reviews/checkin");
-  redirect("/transactions");
+  redirect(transactionReturnTo(returnTo));
 }
 
 export async function upsertYearlyBudget(year: number, amount: number) {
@@ -296,6 +303,8 @@ export async function importTransactions(
 
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/budget");
+  revalidatePath("/budget/goals");
   revalidatePath("/analysis");
   revalidatePath("/analysis/reviews/checkin");
   return { imported };
@@ -399,9 +408,10 @@ export async function applyFixedExpensesAction(
   const result = await applyFixedExpenses(year, month);
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/budget");
+  revalidatePath("/budget/goals");
   revalidatePath("/analysis");
   revalidatePath("/analysis/reviews/checkin");
   revalidatePath("/transactions/fixed", "layout");
-  revalidatePath("/budget");
   return result;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { transactionEntryHref } from "@/lib/transactions/entry-links";
 import Link from "next/link";
 import type { TransactionWithCategory } from "@/lib/data";
 
@@ -15,6 +16,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 type Props = {
   transactions: TransactionWithCategory[];
   filterCategory: string | null;
+  filterCategoryId?: number;
   onClearFilter: () => void;
 };
 
@@ -25,6 +27,7 @@ function fmt(n: number) {
 export default function RecentTransactionsCard({
   transactions,
   filterCategory,
+  filterCategoryId,
   onClearFilter,
 }: Props) {
   const shown = (
@@ -62,14 +65,7 @@ export default function RecentTransactionsCard({
           )}
         </div>
         <div className="flex gap-3.5 items-center flex-shrink-0">
-          <Link
-            href="/transactions/new"
-            className="text-[11px] font-semibold"
-            style={{ color: "var(--primary)" }}
-          >
-            + 追加
-          </Link>
-          <Link href="/transactions" className="text-[11px] text-blue-600 hover:underline">
+          <Link href={filterCategoryId ? `/transactions?category_id=${filterCategoryId}` : "/transactions"} className="text-[11px] text-blue-600 hover:underline">
             一覧 →
           </Link>
         </div>
@@ -88,7 +84,9 @@ export default function RecentTransactionsCard({
               t.type === "income" ? "↗" : (CATEGORY_ICONS[catName] ?? "•");
 
             return (
-              <div
+              <Link
+                href={transactionEntryHref(t.id, "/")}
+                aria-label={`${t.date} ${t.content}を編集`}
                 key={t.id}
                 className="flex items-center gap-3.5 px-2.5 py-3 -mx-2.5 rounded-lg cursor-pointer transition-colors hover:bg-muted/50"
               >
@@ -122,7 +120,7 @@ export default function RecentTransactionsCard({
                   {t.type === "income" ? "+" : "-"}
                   {fmt(t.amount)}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

@@ -1,17 +1,19 @@
+import { transactionReturnTo, transactionImportHref } from "@/lib/transactions/navigation";
 import Link from "next/link";
 import { ChevronLeft, Upload } from "lucide-react";
 import TransactionForm from "@/components/transactions/TransactionForm";
 import { createTransaction } from "@/lib/actions";
 import { getCategories } from "@/lib/data";
 
-export default async function NewTransactionPage() {
+export default async function NewTransactionPage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
+  const returnTo = transactionReturnTo((await searchParams).returnTo);
   const categories = await getCategories();
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-8">
         <Link
-          href="/transactions"
+          href={returnTo}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -23,7 +25,7 @@ export default async function NewTransactionPage() {
             <p className="mt-1 text-sm text-gray-500">1件ずつ手入力で収支を登録します。</p>
           </div>
           <Link
-            href="/import"
+            href={transactionImportHref(returnTo)}
             className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-white px-3 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50"
           >
             <Upload className="h-4 w-4" />
@@ -32,6 +34,7 @@ export default async function NewTransactionPage() {
         </div>
         <div className="bg-white rounded-lg border p-6">
           <TransactionForm
+            returnTo={returnTo}
             categories={categories}
             action={createTransaction}
             submitLabel="登録する"

@@ -36,7 +36,12 @@ function formatDate(value: string) {
 
 export default function FeatureRequestBoard({ requests: initialRequests }: { requests: FeatureRequest[] }) {
   const router = useRouter();
+  const [source, setSource] = useState(initialRequests);
   const [requests, setRequests] = useState(initialRequests);
+  if (source !== initialRequests) {
+    setSource(initialRequests);
+    setRequests(initialRequests);
+  }
   const [query, setQuery] = useState("");
   const [votingIds, setVotingIds] = useState<number[]>([]);
   const [updatingStatusIds, setUpdatingStatusIds] = useState<number[]>([]);

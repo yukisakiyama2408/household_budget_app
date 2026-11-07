@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Lightbulb, X } from "lucide-react";
 import { createFeatureRequest } from "@/app/actions/feature-requests";
 import type { FeatureRequest } from "@/types/database";
@@ -14,6 +14,7 @@ type Props = {
 const categories = ["収支入力", "予算", "分析", "通知", "インポート", "設定", "その他"];
 
 export default function FeatureRequestModal({ open, onClose, suggestions }: Props) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [title, setTitle] = useState("");
   const [detail, setDetail] = useState("");
   const [category, setCategory] = useState(categories[0]);
@@ -35,15 +36,10 @@ export default function FeatureRequestModal({ open, onClose, suggestions }: Prop
   }, [suggestions, title]);
 
   useEffect(() => {
-    if (!open) return;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+    const dialog = dialogRef.current;
+    if (open && !dialog?.open) dialog?.showModal();
+    if (!open && dialog?.open) dialog.close();
+  }, [open]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,8 +49,15 @@ export default function FeatureRequestModal({ open, onClose, suggestions }: Prop
     setLoading(true);
     setErrorMessage("");
     const formData = new FormData(event.currentTarget);
-    const result = await createFeatureRequest(formData);
-    setLoading(false);
+    let result;
+    try {
+      result = await createFeatureRequest(formData);
+    } catch {
+      setErrorMessage("送信できませんでした。もう一度お試しください。");
+      return;
+    } finally {
+      setLoading(false);
+    }
 
     if (!result.ok) {
       setErrorMessage(result.message);
@@ -67,20 +70,18 @@ export default function FeatureRequestModal({ open, onClose, suggestions }: Prop
     setCategory(categories[0]);
   }
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-gray-950/35 px-3 py-3 sm:items-center">
+    <dialog ref={dialogRef} aria-labelledby="feedback-title" onCancel={(event) => { event.preventDefault(); onClose(); }} className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none items-end justify-center border-0 bg-transparent px-3 py-3 backdrop:bg-gray-950/35 open:flex sm:items-center">
       <button
         type="button"
         className="absolute inset-0 cursor-default"
         aria-label="改善要望を閉じる"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg overflow-hidden rounded-lg border bg-white shadow-xl">
+      <div className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-lg border bg-white shadow-xl">
         <div className="flex items-start justify-between gap-4 border-b px-4 py-3">
           <div>
-            <h2 className="text-base font-bold text-gray-950">改善要望を送る</h2>
+            <h2 id="feedback-title" className="text-base font-bold text-gray-950">改善要望を送る</h2>
             <p className="mt-1 text-xs leading-5 text-gray-500">
               欲しい機能や困っていることを短く送れます。
             </p>
@@ -169,6 +170,6 @@ export default function FeatureRequestModal({ open, onClose, suggestions }: Prop
           </button>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 }

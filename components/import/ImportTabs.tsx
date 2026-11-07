@@ -12,7 +12,7 @@ const tabs: { key: Tab; label: string; description: string }[] = [
   { key: "credit", label: "クレジットカード", description: "カード利用明細CSV" },
 ];
 
-export default function ImportTabs({ categories }: { categories: Category[] }) {
+export default function ImportTabs({ categories, returnTo }: { categories: Category[]; returnTo: string }) {
   const [tab, setTab] = useState<Tab>("paypay");
 
   return (
@@ -21,6 +21,7 @@ export default function ImportTabs({ categories }: { categories: Category[] }) {
         {tabs.map(({ key, label, description }) => (
           <button
             key={key}
+            aria-pressed={tab === key}
             onClick={() => setTab(key)}
             className={`rounded-lg border p-4 text-left transition-colors ${
               tab === key
@@ -34,9 +35,9 @@ export default function ImportTabs({ categories }: { categories: Category[] }) {
         ))}
       </div>
       {tab === "paypay" ? (
-        <CsvImportForm categories={categories} />
+        <CsvImportForm categories={categories} returnTo={returnTo} />
       ) : (
-        <CreditCsvImportForm categories={categories} />
+        <CreditCsvImportForm categories={categories} returnTo={returnTo} />
       )}
     </div>
   );

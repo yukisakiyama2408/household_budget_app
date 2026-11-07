@@ -12,11 +12,12 @@ import { resolveAnalysisSelection, analysisPeriodOptions, type AnalysisParams } 
 export default async function AnalysisPage({ searchParams }: { searchParams: Promise<AnalysisParams> }) {
   const selection = resolveAnalysisSelection(await searchParams);
   const { view, period: selectedPeriod } = selection;
-  const options = analysisPeriodOptions(selection, await getTransactionDateBounds());
+  let bounds: Awaited<ReturnType<typeof getTransactionDateBounds>>;
   let content: React.ReactNode;
 
   if (view === "weekly") {
-    const week = await getWeekSummaryForDates(selection.dateFrom, selection.dateTo);
+    const [periodBounds, week] = await Promise.all([getTransactionDateBounds(), getWeekSummaryForDates(selection.dateFrom, selection.dateTo)]);
+    bounds = periodBounds;
     const bal = week.income - week.expense;
 
     content = (
@@ -73,10 +74,12 @@ export default async function AnalysisPage({ searchParams }: { searchParams: Pro
       </>
     );
   } else if (view === "yearly") {
+    bounds = await getTransactionDateBounds();
     content = <YearlyAnalysis year={Number(selectedPeriod)} />;
   } else if (view === "daily") {
     const [currentYear, currentMonth] = selectedPeriod.split("-").map(Number);
-    const monthlyData = await getDailyData(currentYear);
+    const [periodBounds, monthlyData] = await Promise.all([getTransactionDateBounds(), getDailyData(currentYear)]);
+    bounds = periodBounds;
     content = (
       <>
         <DailyTable data={monthlyData[currentMonth - 1]} showMonthSelector={false} />
@@ -84,11 +87,13 @@ export default async function AnalysisPage({ searchParams }: { searchParams: Pro
     );
   } else {
     const [year, mon] = selectedPeriod.split("-").map(Number);
-    const [summary, categoryData, dailyTrend] = await Promise.all([
+    const [periodBounds, summary, categoryData, dailyTrend] = await Promise.all([
+      getTransactionDateBounds(),
       getMonthlySummary(year, mon),
       getCategoryBreakdown(year, mon),
       getDailySpendingTrend(year, mon),
     ]);
+    bounds = periodBounds;
     content = (
       <>
         <SummaryCards
@@ -127,6 +132,7 @@ export default async function AnalysisPage({ searchParams }: { searchParams: Pro
     );
   }
 
+  const options = analysisPeriodOptions(selection, bounds);
   return (
     <div className="min-h-screen bg-gray-50">
       <div className={`mx-auto w-full ${view === "daily" ? "max-w-7xl" : "max-w-6xl"} space-y-6 px-4 py-6 sm:px-6 sm:py-8`}>

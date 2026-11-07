@@ -3,81 +3,64 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import FeatureRequestModal from "@/components/feedback/FeatureRequestModal";
-import type { FeatureRequest } from "@/types/database";
+import { House, ArrowLeftRight, Wallet, ChartNoAxesCombined, Settings } from "lucide-react";
+import NewEntryButton from "./NewEntryButton";
 
 const links = [
-  { href: "/transactions", label: "収支" },
-  { href: "/budget", label: "予算" },
-  { href: "/analysis", label: "分析" },
+  { href: "/", label: "ホーム", icon: House },
+  { href: "/transactions", label: "収支", icon: ArrowLeftRight },
+  { href: "/budget", label: "予算", icon: Wallet },
+  { href: "/analysis", label: "分析", icon: ChartNoAxesCombined },
 ];
 
-const settingsLink = { href: "/settings", label: "設定" };
-
-type Props = {
-  alertCount?: number;
-  featureRequestSuggestions?: Pick<FeatureRequest, "id" | "title" | "category" | "votes">[];
-};
-
-export default function Nav({ alertCount = 0, featureRequestSuggestions = [] }: Props) {
+export default function Nav({ alertCount = 0 }: { alertCount?: number }) {
   const pathname = usePathname();
-  const [requestOpen, setRequestOpen] = useState(false);
+  const active = (href: string) => href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  const settingsClass = `inline-flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium ${active("/settings") ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"}`;
+  const brand = (
+    <Link href="/" className="inline-flex min-h-11 items-center gap-2 font-bold text-indigo-600">
+      <Image src="/icon.png" alt="" width={36} height={36} className="rounded-lg" />
+      マネメモ
+    </Link>
+  );
+
+  function primaryLinks(mobile: boolean) {
+    return links.map(({ href, label, icon: Icon }) => (
+      <Link key={href} href={href} aria-current={active(href) ? "page" : undefined}
+        className={`${mobile ? "flex min-h-16 flex-col justify-center gap-1 text-xs" : "flex min-h-12 gap-3 rounded-lg px-3 text-sm"} relative items-center font-medium transition-colors ${active(href) ? "bg-indigo-50 text-indigo-700" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"}`}>
+        <Icon aria-hidden="true" className="h-5 w-5 shrink-0" />
+        <span>{label}</span>
+        {href === "/budget" && alertCount > 0 && (
+          <span className={mobile ? "absolute right-1/4 top-2 h-2 w-2 rounded-full bg-red-500" : "ml-auto h-2 w-2 rounded-full bg-red-500"}>
+            <span className="sr-only">未設定の予算があります</span>
+          </span>
+        )}
+      </Link>
+    ));
+  }
 
   return (
     <>
-      <nav className="bg-white border-b sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto flex items-center h-16 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <Link href="/" className="font-bold text-xl pl-4 pr-4 flex-shrink-0 whitespace-nowrap text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-2">
-            <Image src="/icon.png" alt="マネメモ" width={40} height={40} className="rounded-lg" />
-            マネメモ
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r bg-white px-4 py-5 lg:flex">
+        <div className="px-2">{brand}</div>
+        <div className="my-6"><NewEntryButton key={pathname} /></div>
+        <nav aria-label="メインナビゲーション" className="space-y-2">{primaryLinks(false)}</nav>
+        <Link href="/settings" aria-current={active("/settings") ? "page" : undefined} className={`${settingsClass} mt-auto`}>
+          <Settings aria-hidden="true" className="h-5 w-5" />設定
+        </Link>
+      </aside>
+      <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between gap-2 border-b bg-white px-4 lg:hidden">
+        {brand}
+        <div className="flex items-center gap-1">
+          <Link href="/settings" aria-current={active("/settings") ? "page" : undefined} className={settingsClass}>
+            <Settings aria-hidden="true" className="h-5 w-5" /><span className="sr-only">設定</span>
           </Link>
-          <div className="flex items-center gap-1 pr-3">
-            {links.map(({ href, label }) => {
-              const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
-              const showBadge = href === "/budget" && alertCount > 0;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`relative px-3 py-2 rounded text-base font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                    isActive
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                  }`}
-                >
-                  {label}
-                  {showBadge && (
-                    <span className="absolute top-1.5 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                  )}
-                </Link>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => setRequestOpen(true)}
-              className="inline-flex flex-shrink-0 items-center whitespace-nowrap rounded px-3 py-2 text-base font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
-            >
-              改善要望
-            </button>
-            <Link
-              href={settingsLink.href}
-              className={`relative px-3 py-2 rounded text-base font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                pathname.startsWith(settingsLink.href)
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-              }`}
-            >
-              {settingsLink.label}
-            </Link>
-          </div>
+          <NewEntryButton key={pathname} />
         </div>
+      </header>
+      <nav aria-label="メインナビゲーション" className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+        {primaryLinks(true)}
       </nav>
-      <FeatureRequestModal
-        open={requestOpen}
-        onClose={() => setRequestOpen(false)}
-        suggestions={featureRequestSuggestions}
-      />
     </>
   );
 }

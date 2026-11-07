@@ -34,6 +34,7 @@ export default function BudgetTransactionsSection({
         <RecentTransactionsCard
           transactions={transactions}
           filterCategory={selectedCategory}
+          filterCategoryId={[...monthlyData.categories, ...weeklyData.categories].find((category) => category.name === selectedCategory)?.id}
           onClearFilter={() => setSelectedCategory(null)}
         />
       </div>

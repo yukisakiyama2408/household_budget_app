@@ -1,0 +1,29 @@
+{
+  "measurement": "analysis-page-fixture-8ms-per-query",
+  "views": {
+    "monthly": {
+      "queryCalls": 4,
+      "maxConcurrent": 3,
+      "medianMs": 18.606,
+      "outputHash": "af154fa35242105b6342840e65c29fccab60fa5a6e1b6e2d1d99038a25d383a6"
+    },
+    "weekly": {
+      "queryCalls": 2,
+      "maxConcurrent": 1,
+      "medianMs": 18.835,
+      "outputHash": "7dcf6b8366b5e7282bd0e8f2a9556929a85251b187c6c6a3338113b206b310e7"
+    },
+    "daily": {
+      "queryCalls": 2,
+      "maxConcurrent": 1,
+      "medianMs": 18.516,
+      "outputHash": "4cbf78b4f797e46c9d58a95d87393b8ce015c4520228bf9dd0459781d8832e0e"
+    },
+    "yearly": {
+      "queryCalls": 1,
+      "maxConcurrent": 1,
+      "medianMs": 9.315,
+      "outputHash": "485944b4b6a36c9c8a017f5d5a1d3fa3b8b85032ab691e11915ee5579bcde1d7"
+    }
+  }
+}

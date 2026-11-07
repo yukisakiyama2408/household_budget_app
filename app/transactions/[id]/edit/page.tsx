@@ -1,3 +1,4 @@
+import { transactionReturnTo } from "@/lib/transactions/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -5,10 +6,12 @@ import EditTransactionForm from "@/components/transactions/EditTransactionForm";
 import { getTransactionById, getCategories } from "@/lib/data";
 
 type Props = {
+  searchParams: Promise<{ returnTo?: string }>;
   params: Promise<{ id: string }>;
 };
 
-export default async function EditTransactionPage({ params }: Props) {
+export default async function EditTransactionPage({ params, searchParams }: Props) {
+  const returnTo = transactionReturnTo((await searchParams).returnTo);
   const { id } = await params;
   const [transaction, categories] = await Promise.all([
     getTransactionById(parseInt(id)).catch(() => null),
@@ -21,7 +24,7 @@ export default async function EditTransactionPage({ params }: Props) {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-8">
         <Link
-          href="/transactions"
+          href={returnTo}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -30,6 +33,7 @@ export default async function EditTransactionPage({ params }: Props) {
         <h1 className="text-xl font-bold mb-6">編集</h1>
         <div className="bg-white rounded-lg border p-6">
           <EditTransactionForm
+            returnTo={returnTo}
             transaction={transaction}
             categories={categories}
           />

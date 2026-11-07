@@ -57,7 +57,7 @@ export async function createFeatureRequest(formData: FormData): Promise<FeatureR
     return { ok: false, message: error.message };
   }
 
-  revalidatePath("/feature-requests");
+  revalidatePath("/settings/feedback");
   return { ok: true, message: "改善要望を送信しました。", title };
 }
 
@@ -71,7 +71,7 @@ export async function voteFeatureRequest(id: number): Promise<void> {
   });
 
   if (error) throw new Error(error.message);
-  revalidatePath("/feature-requests");
+  revalidatePath("/settings/feedback");
 }
 
 export async function updateFeatureRequestStatus(
@@ -94,5 +94,5 @@ export async function updateFeatureRequestStatus(
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/feature-requests");
+  revalidatePath("/settings/feedback");
 }

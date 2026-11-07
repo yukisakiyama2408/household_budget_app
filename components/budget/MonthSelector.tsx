@@ -1,5 +1,6 @@
 "use client";
 
+import { budgetSectionHref } from "@/lib/budget-navigation";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -14,8 +15,7 @@ export default function MonthSelector({ year, month, extraParams }: Props) {
   const router = useRouter();
 
   function navigate(y: number, m: number) {
-    const base = `/budget?year=${y}&month=${m}`;
-    router.push(extraParams ? `${base}&${extraParams}` : base);
+    router.push(budgetSectionHref("budget", { year: String(y), month: String(m), view: new URLSearchParams(extraParams).get("view") ?? "monthly" }));
   }
 
   function prev() {

@@ -1,5 +1,6 @@
 "use client";
 
+import { budgetSectionHref } from "@/lib/budget-navigation";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ export default function WeekSelector({ year, month, weekStart }: Props) {
   function navigate(index: number) {
     const w = weeks[index];
     if (!w) return;
-    router.push(`/budget?year=${year}&month=${month}&view=weekly&weekStart=${w.start}`);
+    router.push(budgetSectionHref("budget", { year: String(year), month: String(month), view: "weekly", period: w.start }));
   }
 
   return (

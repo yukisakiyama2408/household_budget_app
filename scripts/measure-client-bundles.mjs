@@ -4,7 +4,7 @@ import { runInNewContext } from "node:vm";
 import { resolve } from "node:path";
 
 // Production build entry files, not a browser/Lighthouse measurement.
-const routes = ["/", "/transactions", "/budget", "/analysis", "/analysis/reviews", "/import"];
+const routes = ["/", "/transactions", "/budget", "/analysis", "/analysis/reviews", "/transactions/import", "/settings/feedback"];
 const result = { measurement: "production-entry-js-files", routes: {} };
 for (const route of routes) {
   const file = `.next/server/app${route === "/" ? "" : route}/page_client-reference-manifest.js`;

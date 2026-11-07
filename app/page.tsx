@@ -1,4 +1,4 @@
-import NewEntryButton from "@/components/NewEntryButton";
+import { budgetSectionHref } from "@/lib/budget-navigation";
 import {
   getCurrentBalance,
   getBudgetData,
@@ -43,7 +43,10 @@ export default async function HomePage() {
   const today = getJapanToday();
   const { year, month } = today;
   const dateLabel = `${month}/${today.day} (${DOW_LABEL[today.dayOfWeek]})`;
+  const monthlyHref = budgetSectionHref("budget", { view: "monthly", period: today.date.slice(0, 7) });
   const currentWeek = getCurrentWeekBounds(today.date);
+
+  const weeklyHref = budgetSectionHref("budget", { view: "weekly", period: currentWeek.start, month: today.date.slice(0, 7) });
 
   const [
     balance,
@@ -118,10 +121,11 @@ export default async function HomePage() {
         <p className="text-sm text-muted-foreground">
           {year}年{month}月
         </p>
-        <NewEntryButton />
       </div>
 
       <BudgetAlertBanner
+        monthlyHref={monthlyHref}
+        weeklyHref={weeklyHref}
         monthlyMissing={!monthlyRegistered}
         weeklyMissing={!weeklyRegistered}
       />
@@ -137,20 +141,20 @@ export default async function HomePage() {
       <BudgetTransactionsSection
         weeklyData={{
           subtitle: activeWeeklyPeriod?.label ?? currentWeek.label,
-          linkHref: "/budget?view=weekly",
+          linkHref: weeklyHref,
           totalBudget: weeklyBudget,
           totalActual: weeklyExpense,
           categories: weeklyCategories,
         }}
         monthlyData={{
           subtitle: `${year}年${month}月`,
-          linkHref: "/budget",
+          linkHref: monthlyHref,
           totalBudget: totalBudget,
           totalActual: totalActual,
           categories: monthlyCategories,
         }}
         transactions={recentTx}
-        goalCard={<GoalHeroCard goals={goals} />}
+        goalCard={<GoalHeroCard goals={goals} href={budgetSectionHref("goals", { view: "monthly", period: today.date.slice(0, 7) })} />}
       />
     </div>
   );

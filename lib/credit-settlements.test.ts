@@ -101,6 +101,7 @@ test("saving and correcting an amount preserves balance accounting and never dup
     "@/lib/fixed-expenses": {},
     "@/lib/fixed-expense-navigation": {},
     "@/lib/credit-settlements": { validateCreditSettlement },
+    "@/lib/transactions/navigation": {},
   });
   const originalTransactions = structuredClone(tables.transactions);
   const before = await data.getDailyData(2026);

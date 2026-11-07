@@ -1,7 +1,8 @@
+import { budgetHrefForAnalysis } from "@/lib/budget-navigation";
 import Link from "next/link";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import AnalysisPeriodSelector from "@/components/dashboard/AnalysisPeriodSelector";
-import { analysisHref, type AnalysisSection, type AnalysisSelection, type AnalysisPeriodOption } from "@/lib/analysis-navigation";
+import { analysisHref, resolveAnalysisSelection, type AnalysisSection, type AnalysisSelection, type AnalysisPeriodOption } from "@/lib/analysis-navigation";
 
 export default function AnalysisHeader({ section, selection, options }: {
   section: AnalysisSection;
@@ -27,7 +28,11 @@ export default function AnalysisHeader({ section, selection, options }: {
           {section === "checkin" ? <span className="text-sm font-medium text-gray-600">対象週</span> : <DashboardTabs activeView={selection.view} period={selection.period} excludeDaily={section === "reviews"} />}
           <AnalysisPeriodSelector value={selection.period} view={selection.view} options={options} />
         </div>
-        <Link href={`/transactions?${new URLSearchParams({ dateFrom: selection.dateFrom, dateTo: selection.dateTo })}`} className="inline-flex min-h-11 items-center text-sm text-indigo-600 hover:underline">この期間の取引明細 →</Link>
+        <div className="flex flex-wrap items-center gap-4">
+          <Link href={analysisHref(section, resolveAnalysisSelection({ view: selection.view }, section))} className="inline-flex min-h-11 items-center text-sm text-indigo-600 hover:underline">{selection.view === "weekly" ? "今週に戻る" : selection.view === "yearly" ? "今年に戻る" : "今月に戻る"}</Link>
+          <Link href={budgetHrefForAnalysis(selection)} className="inline-flex min-h-11 items-center text-sm text-indigo-600 hover:underline">{selection.view === "yearly" ? "この年の1月の予算" : "この期間の予算"} →</Link>
+          <Link href={`/transactions?${new URLSearchParams({ dateFrom: selection.dateFrom, dateTo: selection.dateTo })}`} className="inline-flex min-h-11 items-center text-sm text-indigo-600 hover:underline">この期間の取引明細 →</Link>
+        </div>
       </div>
     </header>
   );

@@ -1,10 +1,10 @@
 "use client";
 
+import { transactionEntryHref, transactionImportHref } from "@/lib/transactions/entry-links";
 import { Fragment, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Download, MoreHorizontal, Upload } from "lucide-react";
 import TransactionFilters from "./TransactionFilters";
-import NewEntryButton from "@/components/NewEntryButton";
 import TransactionSectionTabs from "./TransactionSectionTabs";
 import { loadMoreTransactions } from "@/app/actions/transaction-list";
 import type { Category, TransactionWithCategory } from "@/types/database";
@@ -49,6 +49,7 @@ export default function TransactionListView({ initialPage, categories, filters, 
   monthOptions: string[];
   search: string;
 }) {
+  const returnTo = search ? `/transactions?${search}` : "/transactions";
   const [pageState, setPageState] = useState({ source: initialPage, transactions: initialPage.transactions, nextCursor: initialPage.nextCursor, error: null as string | null });
   if (pageState.source !== initialPage) {
     setPageState({ source: initialPage, transactions: initialPage.transactions, nextCursor: initialPage.nextCursor, error: null });
@@ -112,13 +113,12 @@ export default function TransactionListView({ initialPage, categories, filters, 
               <Download className="h-4 w-4" />
             </Link>
             <Link
-              href="/import"
+              href={transactionImportHref(returnTo)}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border bg-white text-gray-500 transition-colors hover:bg-gray-50"
               aria-label="CSVアップロード"
             >
               <Upload className="h-4 w-4" />
             </Link>
-            <NewEntryButton />
           </div>
         </div>
 
@@ -270,7 +270,7 @@ export default function TransactionListView({ initialPage, categories, filters, 
                                 </td>
                                 <td className="px-3 py-3 text-right">
                                   <Link
-                                    href={`/transactions/${t.id}/edit`}
+                                    href={transactionEntryHref(t.id, returnTo)}
                                     className="inline-flex h-8 w-9 items-center justify-center rounded-lg border text-gray-500 transition-colors hover:bg-gray-50"
                                     aria-label={`${t.content}を編集`}
                                   >
@@ -298,7 +298,7 @@ export default function TransactionListView({ initialPage, categories, filters, 
                           return (
                             <Link
                               key={t.id}
-                              href={`/transactions/${t.id}/edit`}
+                              href={transactionEntryHref(t.id, returnTo)}
                               className="grid min-h-16 grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg border bg-white p-3 transition-colors hover:bg-gray-50"
                             >
                               <span

@@ -24,7 +24,7 @@ function parseAmount(raw: string): number {
   return isNaN(n) ? 0 : Math.abs(n);
 }
 
-export default function CsvImportForm({ categories }: { categories: Category[] }) {
+export default function CsvImportForm({ categories, returnTo = "/transactions" }: { categories: Category[]; returnTo?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [filterStart, setFilterStart] = useState("");
@@ -220,7 +220,7 @@ export default function CsvImportForm({ categories }: { categories: Category[] }
       {result && (
         <div className="flex flex-col gap-2 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-700 sm:flex-row sm:items-center sm:justify-between">
           <span>{result.imported}件をインポートしました。</span>
-          <Link href="/transactions" className="font-bold text-green-800 hover:underline">
+          <Link href={returnTo} className="font-bold text-green-800 hover:underline">
             取引一覧で確認
           </Link>
         </div>

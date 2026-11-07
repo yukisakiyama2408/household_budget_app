@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { getJapanToday } from "@/lib/dateUtils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +20,9 @@ type Props = {
   defaultValues?: Partial<Transaction>;
   action: (formData: FormData) => Promise<void>;
   submitLabel: string;
+  returnTo?: string;
   onDelete?: () => void;
 };
-
-function getLocalDateValue() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-}
 
 export default function TransactionForm({
   categories,
@@ -32,6 +30,7 @@ export default function TransactionForm({
   action,
   submitLabel,
   onDelete,
+  returnTo = "/transactions",
 }: Props) {
   const [type, setType] = useState<string>(defaultValues?.type ?? "expense");
 
@@ -41,6 +40,7 @@ export default function TransactionForm({
 
   return (
     <form action={action} className="space-y-5">
+      <input type="hidden" name="returnTo" value={returnTo} />
       {/* 収支区分 */}
       <div className="space-y-1.5">
         <Label>収支区分</Label>
@@ -73,7 +73,7 @@ export default function TransactionForm({
           name="date"
           type="date"
           required
-          defaultValue={defaultValues?.date ?? getLocalDateValue()}
+          defaultValue={defaultValues?.date ?? getJapanToday().date}
         />
       </div>
 
@@ -163,6 +163,7 @@ export default function TransactionForm({
         </>
       )}
 
+      <Link href={returnTo} className="inline-flex min-h-11 items-center text-sm text-gray-600 hover:underline">キャンセル</Link>
       <div className="flex gap-3 pt-2">
         <Button type="submit" className="flex-1">
           {submitLabel}

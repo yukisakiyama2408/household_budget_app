@@ -10,7 +10,7 @@ function revalidateCategoryViews() {
   revalidatePath("/analysis");
   revalidatePath("/analysis/reviews/checkin");
   revalidatePath("/budget/goals");
-  revalidatePath("/import");
+  revalidatePath("/transactions/import");
   revalidatePath("/");
 }
 

@@ -18,18 +18,19 @@ function daysUntil(deadline: string): number {
 
 type Props = {
   goals: GoalWithProgress[];
+  href: string;
 };
 
 const DONUT_R = 44;
 const DONUT_C = 2 * Math.PI * DONUT_R; // ~276.46
 
-export default function GoalHeroCard({ goals }: Props) {
+export default function GoalHeroCard({ goals, href }: Props) {
   if (goals.length === 0) {
     return (
       <div className="rounded-2xl p-5 border bg-card flex flex-col h-full" style={{ minHeight: "260px" }}>
         <div className="flex justify-between items-center mb-4">
           <div className="text-[13px] font-semibold">目標の進捗</div>
-          <Link href="/budget/goals" className="text-[11px] text-muted-foreground hover:underline">
+          <Link href={href} className="text-[11px] text-muted-foreground hover:underline">
             管理 →
           </Link>
         </div>
@@ -57,7 +58,7 @@ export default function GoalHeroCard({ goals }: Props) {
     <div className="rounded-2xl p-5 border bg-card flex flex-col h-full" style={{ minHeight: "260px" }}>
       <div className="flex justify-between items-center mb-4">
         <div className="text-[13px] font-semibold">目標の進捗</div>
-        <Link href="/budget/goals" className="text-[11px] text-muted-foreground hover:underline">
+        <Link href={href} className="text-[11px] text-muted-foreground hover:underline">
           管理 →
         </Link>
       </div>

@@ -13,6 +13,14 @@ export default function SettingsPage() {
       </div>
 
       <section className="space-y-3">
+        <h2 className="text-base font-semibold text-gray-700">改善要望</h2>
+        <div className="rounded-lg border bg-white p-4">
+          <p className="text-sm text-gray-500">要望の送信や投票、対応状況の確認ができます。</p>
+          <Link href="/settings/feedback" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-indigo-600 hover:underline">改善要望を開く →</Link>
+        </div>
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-base font-semibold text-gray-700">アカウント</h2>
         <div className="flex items-center justify-between gap-4 rounded-lg border bg-white p-4">
           <p className="text-sm text-gray-500">この端末のログインセッションを終了します。</p>
