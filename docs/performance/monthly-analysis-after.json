@@ -1,0 +1,19 @@
+{
+  "measurement": "monthly-analysis-8ms-query-fixture-with-1000-row-cap",
+  "results": {
+    "180": {
+      "queryCalls": 3,
+      "payloadBytes": 26796,
+      "maxConcurrent": 3,
+      "medianMs": 9.636,
+      "outputHash": "1b018e57100aee7bd79d20526d22a9707e812a02bdca805d6c850514088d30c4"
+    },
+    "2400": {
+      "queryCalls": 3,
+      "payloadBytes": 174573,
+      "maxConcurrent": 3,
+      "medianMs": 11.826,
+      "outputHash": "05c7190793c1d1f02893d82f44c6645835d6e8fc7769fc725131e9bf8a70648f"
+    }
+  }
+}

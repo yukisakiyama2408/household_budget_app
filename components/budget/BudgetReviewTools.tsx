@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ClipboardCopy, Download } from "lucide-react";
-import { TEMPLATES } from "@/components/insights/ChatGPTPrompt";
+import { BUDGET_TEMPLATES } from "@/lib/prompts/budget";
 
 type Props = {
   view: "monthly" | "weekly";
@@ -32,7 +32,7 @@ const REVIEW_CONFIG = {
 export default function BudgetReviewTools({ view, targetLabel, priorAnalysis }: Props) {
   const [copied, setCopied] = useState(false);
   const config = REVIEW_CONFIG[view];
-  const template = TEMPLATES.find((t) => t.id === config.templateId);
+  const template = BUDGET_TEMPLATES.find((t) => t.id === config.templateId);
 
   if (!template) return null;
   const selectedTemplate = template;

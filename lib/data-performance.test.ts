@@ -136,3 +136,26 @@ test("parallel query failures still propagate to the caller", async () => {
   await assert.rejects(fixture("credit_settlements").data.getDailyData(2026), /fixture error/);
   await assert.rejects(fixture("categories").data.getBudgetData(2026, 1), /fixture error/);
 });
+
+test("monthly summary and category breakdown share a request-scoped read without mixing months", async () => {
+  const db = fixture();
+  const [summary, categories] = await Promise.all([db.data.getMonthlySummary(2026, 1), db.data.getCategoryBreakdown(2026, 1)]);
+  assert.deepEqual(summary, { income: 50, expense: 80, reimbursement: 20, effectiveExpense: 60, balance: -30 });
+  assert.deepEqual(categories, [{ name: "その他", color: "#B3B3B3", amount: 60 }]);
+  assert.equal(db.calls.length, 2);
+  await db.data.getCategoryBreakdown(2025, 12);
+  assert.equal(db.calls.length, 3);
+  const freshRequest = fixture();
+  await freshRequest.data.getCategoryBreakdown(2026, 1);
+  assert.equal(freshRequest.calls.length, 1);
+});
+
+test("monthly shared-read failures propagate to both consumers", async () => {
+  const db = fixture("transactions");
+  const results = await Promise.allSettled([db.data.getMonthlySummary(2026, 1), db.data.getCategoryBreakdown(2026, 1)]);
+  for (const result of results) {
+    assert.equal(result.status, "rejected");
+    if (result.status === "rejected") assert.match(String(result.reason), /fixture error/);
+  }
+  assert.equal(db.calls.length, 2);
+});

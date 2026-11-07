@@ -665,18 +665,35 @@ function getMonthRange(year: number, month: number) {
   return { start, end };
 }
 
+type MonthlyAnalysisTransaction = {
+  type: string;
+  amount: number;
+  category_id: number | null;
+  categories: { name: string; color: string | null; offset_category_id: number | null } | null;
+};
+
+// Same date filters and server result limit as the existing category read.
+// Reuse only during a single server render; never persist one user's rows across requests.
+const getMonthlyAnalysisTransactions = cache(async (year: number, month: number): Promise<MonthlyAnalysisTransaction[]> => {
+  const supabase = await createClient();
+  const { start, end } = getMonthRange(year, month);
+  const { data, error } = await supabase.from("transactions")
+    .select("type, amount, category_id, categories(name, color, offset_category_id)")
+    .gte("date", start).lt("date", end);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as MonthlyAnalysisTransaction[];
+});
+
 export async function getMonthlySummary(year: number, month: number) {
   const supabase = await createClient();
   const { start, end } = getMonthRange(year, month);
 
-  const [{ data: txData, error: txError }, { data: reimData, error: reimError }] = await Promise.all([
-    supabase.from("transactions").select("type, amount").gte("date", start).lt("date", end),
+  const [rows, { data: reimData, error: reimError }] = await Promise.all([
+    getMonthlyAnalysisTransactions(year, month),
     supabase.from("transactions").select("amount, categories(offset_category_id)").eq("type", "income").gte("date", start).lt("date", end),
   ]);
-  if (txError) throw new Error(txError.message);
   if (reimError) throw new Error(reimError.message);
 
-  const rows = (txData ?? []) as { type: string; amount: number }[];
   const income = rows.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
   const expense = rows.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
 
@@ -692,19 +709,7 @@ export type TransactionWithCategory = Transaction & {
 };
 
 export async function getCategoryBreakdown(year: number, month: number) {
-  const supabase = await createClient();
-  const { start, end } = getMonthRange(year, month);
-
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("type, amount, category_id, categories(name, color, offset_category_id)")
-    .gte("date", start)
-    .lt("date", end);
-
-  if (error) throw new Error(error.message);
-
-  type Row = { type: string; amount: number; category_id: number | null; categories: { name: string; color: string | null; offset_category_id: number | null } | null };
-  const rows = (data ?? []) as Row[];
+  const rows = await getMonthlyAnalysisTransactions(year, month);
 
   const map = new Map<number | "none", { name: string; color: string; amount: number }>();
 

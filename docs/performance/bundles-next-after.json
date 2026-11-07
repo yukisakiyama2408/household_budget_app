@@ -1,0 +1,172 @@
+{
+  "measurement": "production-entry-js-files",
+  "routes": {
+    "/": {
+      "bytes": 93730,
+      "gzipBytes": 26641,
+      "files": [
+        {
+          "file": "static/chunks/0tl0-yzyj4vgk.js",
+          "bytes": 31584,
+          "gzipBytes": 11310
+        },
+        {
+          "file": "static/chunks/0egberx59sppg.js",
+          "bytes": 54646,
+          "gzipBytes": 12859
+        },
+        {
+          "file": "static/chunks/0_ayppvb2axri.js",
+          "bytes": 7500,
+          "gzipBytes": 2472
+        }
+      ]
+    },
+    "/transactions": {
+      "bytes": 106303,
+      "gzipBytes": 30660,
+      "files": [
+        {
+          "file": "static/chunks/0tl0-yzyj4vgk.js",
+          "bytes": 31584,
+          "gzipBytes": 11310
+        },
+        {
+          "file": "static/chunks/0egberx59sppg.js",
+          "bytes": 54646,
+          "gzipBytes": 12859
+        },
+        {
+          "file": "static/chunks/06n1i6khub891.js",
+          "bytes": 20073,
+          "gzipBytes": 6491
+        }
+      ]
+    },
+    "/budget": {
+      "bytes": 162398,
+      "gzipBytes": 47277,
+      "files": [
+        {
+          "file": "static/chunks/0tl0-yzyj4vgk.js",
+          "bytes": 31584,
+          "gzipBytes": 11310
+        },
+        {
+          "file": "static/chunks/0egberx59sppg.js",
+          "bytes": 54646,
+          "gzipBytes": 12859
+        },
+        {
+          "file": "static/chunks/0ucl4~pqaw1bc.js",
+          "bytes": 36488,
+          "gzipBytes": 9756
+        },
+        {
+          "file": "static/chunks/0r11kw-_lp43..js",
+          "bytes": 39680,
+          "gzipBytes": 13352
+        }
+      ]
+    },
+    "/analysis": {
+      "bytes": 550904,
+      "gzipBytes": 157765,
+      "files": [
+        {
+          "file": "static/chunks/0tl0-yzyj4vgk.js",
+          "bytes": 31584,
+          "gzipBytes": 11310
+        },
+        {
+          "file": "static/chunks/0egberx59sppg.js",
+          "bytes": 54646,
+          "gzipBytes": 12859
+        },
+        {
+          "file": "static/chunks/14s0j~rgxfq25.js",
+          "bytes": 8741,
+          "gzipBytes": 3599
+        },
+        {
+          "file": "static/chunks/12hbjk8li3i~~.js",
+          "bytes": 416253,
+          "gzipBytes": 116645
+        },
+        {
+          "file": "static/chunks/0r11kw-_lp43..js",
+          "bytes": 39680,
+          "gzipBytes": 13352
+        }
+      ]
+    },
+    "/analysis/reviews": {
+      "bytes": 153536,
+      "gzipBytes": 45993,
+      "files": [
+        {
+          "file": "static/chunks/0tl0-yzyj4vgk.js",
+          "bytes": 31584,
+          "gzipBytes": 11310
+        },
+        {
+          "file": "static/chunks/0egberx59sppg.js",
+          "bytes": 54646,
+          "gzipBytes": 12859
+        },
+        {
+          "file": "static/chunks/0ln0kq_7~8mo-.js",
+          "bytes": 27626,
+          "gzipBytes": 8472
+        },
+        {
+          "file": "static/chunks/0r11kw-_lp43..js",
+          "bytes": 39680,
+          "gzipBytes": 13352
+        }
+      ]
+    },
+    "/transactions/import": {
+      "bytes": 115258,
+      "gzipBytes": 30323,
+      "files": [
+        {
+          "file": "static/chunks/0tl0-yzyj4vgk.js",
+          "bytes": 31584,
+          "gzipBytes": 11310
+        },
+        {
+          "file": "static/chunks/0egberx59sppg.js",
+          "bytes": 54646,
+          "gzipBytes": 12859
+        },
+        {
+          "file": "static/chunks/0zx84xq3bxjj9.js",
+          "bytes": 29028,
+          "gzipBytes": 6154
+        }
+      ]
+    },
+    "/settings/feedback": {
+      "bytes": 99048,
+      "gzipBytes": 28706,
+      "files": [
+        {
+          "file": "static/chunks/0tl0-yzyj4vgk.js",
+          "bytes": 31584,
+          "gzipBytes": 11310
+        },
+        {
+          "file": "static/chunks/0egberx59sppg.js",
+          "bytes": 54646,
+          "gzipBytes": 12859
+        },
+        {
+          "file": "static/chunks/0nxn75z_hn9kv.js",
+          "bytes": 12818,
+          "gzipBytes": 4537
+        }
+      ]
+    }
+  }
+}
